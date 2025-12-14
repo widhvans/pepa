@@ -522,6 +522,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openPlayer(video: VideoItem, position: Int) {
+        // Save to history immediately on click (so NEW tag disappears)
+        val isAudio = video.mimeType.startsWith("audio") ||
+                     video.path.endsWith(".mp3", true) ||
+                     video.path.endsWith(".m4a", true) ||
+                     video.path.endsWith(".flac", true) ||
+                     video.path.endsWith(".wav", true) ||
+                     video.path.endsWith(".aac", true)
+        
+        if (!isAudio) {
+            saveVideoToHistory(video.uri.toString(), video.title)
+        }
+        
         // Get the correct playlist based on current context
         val playlist = if (isShowingFolders) {
             // If clicking from folders view (shouldn't happen normally)
@@ -548,6 +560,42 @@ class MainActivity : AppCompatActivity() {
             )
         }
         startActivity(intent)
+    }
+    
+    private fun saveVideoToHistory(uri: String, title: String) {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("video_history", "[]") ?: "[]"
+        
+        val historyArray = try {
+            org.json.JSONArray(historyJson)
+        } catch (e: Exception) {
+            org.json.JSONArray()
+        }
+        
+        // Remove if already exists (to move to end)
+        val newArray = org.json.JSONArray()
+        for (i in 0 until historyArray.length()) {
+            val existingUri = historyArray.getString(i)
+            if (existingUri != uri) {
+                newArray.put(existingUri)
+            }
+        }
+        
+        // Add current video to end
+        newArray.put(uri)
+        
+        // Keep only last 20 items
+        val finalArray = org.json.JSONArray()
+        val startIndex = if (newArray.length() > 20) newArray.length() - 20 else 0
+        for (i in startIndex until newArray.length()) {
+            finalArray.put(newArray.getString(i))
+        }
+        
+        prefs.edit()
+            .putString("video_history", finalArray.toString())
+            .putString("last_video_uri", uri)
+            .putString("last_video_title", title)
+            .apply()
     }
 
     private fun showVideoInfo(video: VideoItem) {
