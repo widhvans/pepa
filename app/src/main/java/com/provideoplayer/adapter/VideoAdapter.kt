@@ -41,7 +41,32 @@ class VideoAdapter(
         fun bind(video: VideoItem, position: Int) {
             title.text = video.title
             duration.text = video.getFormattedDuration()
-            size.text = video.getFormattedSize()
+            
+            // Check if it's an audio file
+            val isAudio = video.mimeType.startsWith("audio") ||
+                         video.path.endsWith(".mp3", true) ||
+                         video.path.endsWith(".m4a", true) ||
+                         video.path.endsWith(".flac", true) ||
+                         video.path.endsWith(".wav", true) ||
+                         video.path.endsWith(".aac", true)
+            
+            // Check if video is in history (only for video files)
+            if (!isAudio) {
+                val prefs = itemView.context.getSharedPreferences("pro_video_player_prefs", android.content.Context.MODE_PRIVATE)
+                val historyJson = prefs.getString("video_history", "[]") ?: "[]"
+                val isWatched = historyJson.contains(video.uri.toString())
+                
+                if (isWatched) {
+                    size.text = video.getFormattedSize()
+                    size.setTextColor(itemView.context.getColor(R.color.text_secondary))
+                } else {
+                    size.text = "NEW"
+                    size.setTextColor(itemView.context.getColor(R.color.teal_200))
+                }
+            } else {
+                size.text = video.getFormattedSize()
+                size.setTextColor(itemView.context.getColor(R.color.text_secondary))
+            }
             
             // Show resolution if available
             if (video.resolution.isNotEmpty()) {
@@ -51,15 +76,7 @@ class VideoAdapter(
                 resolution.visibility = View.GONE
             }
 
-            // Load thumbnail with Glide
-            // Check if it's an audio file
-            val isAudio = video.mimeType.startsWith("audio") ||
-                         video.path.endsWith(".mp3", true) ||
-                         video.path.endsWith(".m4a", true) ||
-                         video.path.endsWith(".flac", true) ||
-                         video.path.endsWith(".wav", true) ||
-                         video.path.endsWith(".aac", true)
-            
+            // Load thumbnail
             if (isAudio) {
                 // Use CD icon for audio files
                 thumbnail.setImageResource(R.drawable.ic_audio_cd)

@@ -288,6 +288,11 @@ class MainActivity : AppCompatActivity() {
                 openHistory()
                 true
             }
+            R.id.action_refresh -> {
+                loadVideos()
+                Toast.makeText(this, "Refreshing...", Toast.LENGTH_SHORT).show()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -579,17 +584,6 @@ class MainActivity : AppCompatActivity() {
         
         if (lastUri.isNullOrEmpty()) {
             Toast.makeText(this, "No video to continue. Start watching!", Toast.LENGTH_SHORT).show()
-            return
-        }
-        
-        // Check if it's a video (not audio)
-        val isAudio = lastUri.contains("/audio/") || 
-                     lastUri.endsWith(".mp3", true) || 
-                     lastUri.endsWith(".m4a", true) ||
-                     lastUri.endsWith(".flac", true)
-        
-        if (isAudio) {
-            Toast.makeText(this, "Last played was audio. Play a video to continue!", Toast.LENGTH_SHORT).show()
             return
         }
         

@@ -1268,6 +1268,16 @@ class PlayerActivity : AppCompatActivity() {
         val currentTitle = playlistTitles.getOrNull(currentIndex) ?: "Video"
         val position = player?.currentPosition ?: 0
         
+        // Skip audio files - only save videos to history
+        val isAudio = currentUri.contains("/audio/") ||
+                     currentUri.endsWith(".mp3", true) ||
+                     currentUri.endsWith(".m4a", true) ||
+                     currentUri.endsWith(".flac", true) ||
+                     currentUri.endsWith(".wav", true) ||
+                     currentUri.endsWith(".aac", true)
+        
+        if (isAudio) return  // Don't save audio to history
+        
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
         
         // Load existing history
