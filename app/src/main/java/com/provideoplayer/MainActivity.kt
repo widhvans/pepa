@@ -163,20 +163,50 @@ class MainActivity : AppCompatActivity() {
         }
         
         if (audioFiles.isEmpty()) {
+            binding.recyclerView.visibility = View.GONE
             binding.emptyView.visibility = View.VISIBLE
             binding.emptyText.text = "No audio files found"
         } else {
             binding.emptyView.visibility = View.GONE
+            binding.recyclerView.visibility = View.VISIBLE
             videoAdapter.submitList(audioFiles)
         }
     }
     
     private fun showPlaylists() {
-        // Show empty state for now - playlists coming soon
+        // Show recently watched videos as playlist
         isShowingFolders = false
-        binding.emptyView.visibility = View.VISIBLE
-        binding.emptyText.text = "Playlists - Coming Soon!"
-        videoAdapter.submitList(emptyList())
+        binding.recyclerView.adapter = videoAdapter
+        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        
+        // Load history from prefs
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("video_history", "[]")
+        
+        try {
+            val historyUris = org.json.JSONArray(historyJson)
+            val historyVideos = mutableListOf<VideoItem>()
+            
+            for (i in 0 until historyUris.length()) {
+                val uri = historyUris.getString(i)
+                // Find matching video
+                allVideos.find { it.uri.toString() == uri }?.let { historyVideos.add(it) }
+            }
+            
+            if (historyVideos.isEmpty()) {
+                binding.recyclerView.visibility = View.GONE
+                binding.emptyView.visibility = View.VISIBLE
+                binding.emptyText.text = "Watch some videos to build your playlist!"
+            } else {
+                binding.emptyView.visibility = View.GONE
+                binding.recyclerView.visibility = View.VISIBLE
+                videoAdapter.submitList(historyVideos.reversed()) // Recent first
+            }
+        } catch (e: Exception) {
+            binding.recyclerView.visibility = View.GONE
+            binding.emptyView.visibility = View.VISIBLE
+            binding.emptyText.text = "Watch some videos to build your playlist!"
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -370,7 +400,16 @@ class MainActivity : AppCompatActivity() {
         isShowingFolders = true
         binding.recyclerView.adapter = folderAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        folderAdapter.submitList(allFolders)
+        
+        if (allFolders.isEmpty()) {
+            binding.recyclerView.visibility = View.GONE
+            binding.emptyView.visibility = View.VISIBLE
+            binding.emptyText.text = "No folders found"
+        } else {
+            binding.emptyView.visibility = View.GONE
+            binding.recyclerView.visibility = View.VISIBLE
+            folderAdapter.submitList(allFolders)
+        }
     }
 
     private fun openFolder(folder: FolderItem) {
@@ -500,27 +539,42 @@ class MainActivity : AppCompatActivity() {
     
     private fun openHistory() {
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
-        val lastUri = prefs.getString("last_video_uri", null)
-        val lastTitle = prefs.getString("last_video_title", "Last Video")
-        val lastPosition = prefs.getLong("last_video_position", 0)
+        val historyJson = prefs.getString("video_history", "[]")
         
-        if (lastUri.isNullOrEmpty()) {
-            Toast.makeText(this, "No history yet. Start watching a video!", Toast.LENGTH_SHORT).show()
-            return
-        }
-        
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Continue Watching")
-            .setMessage("Resume \"$lastTitle\"?")
-            .setPositiveButton("Resume") { _, _ ->
-                val intent = Intent(this, PlayerActivity::class.java).apply {
-                    putExtra(PlayerActivity.EXTRA_VIDEO_URI, lastUri)
-                    putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, lastTitle)
-                }
-                startActivity(intent)
+        try {
+            val historyUris = org.json.JSONArray(historyJson)
+            
+            if (historyUris.length() == 0) {
+                Toast.makeText(this, "No history yet. Start watching a video!", Toast.LENGTH_SHORT).show()
+                return
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            
+            // Build list of titles
+            val historyItems = mutableListOf<Pair<String, String>>() // title to uri
+            for (i in historyUris.length() - 1 downTo 0) { // Recent first
+                val uri = historyUris.getString(i)
+                val video = allVideos.find { it.uri.toString() == uri }
+                val title = video?.title ?: uri.substringAfterLast("/")
+                historyItems.add(title to uri)
+            }
+            
+            val titles = historyItems.map { it.first }.toTypedArray()
+            
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Recently Watched")
+                .setItems(titles) { _, which ->
+                    val (title, uri) = historyItems[which]
+                    val intent = Intent(this, PlayerActivity::class.java).apply {
+                        putExtra(PlayerActivity.EXTRA_VIDEO_URI, uri)
+                        putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, title)
+                    }
+                    startActivity(intent)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "No history yet. Start watching a video!", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onResume() {

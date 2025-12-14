@@ -1269,7 +1269,36 @@ class PlayerActivity : AppCompatActivity() {
         val position = player?.currentPosition ?: 0
         
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        
+        // Load existing history
+        val historyJson = prefs.getString("video_history", "[]")
+        val historyArray = try {
+            org.json.JSONArray(historyJson)
+        } catch (e: Exception) {
+            org.json.JSONArray()
+        }
+        
+        // Remove if already exists (to move to end)
+        val newArray = org.json.JSONArray()
+        for (i in 0 until historyArray.length()) {
+            val uri = historyArray.getString(i)
+            if (uri != currentUri) {
+                newArray.put(uri)
+            }
+        }
+        
+        // Add current video to end
+        newArray.put(currentUri)
+        
+        // Keep only last 20 items
+        val finalArray = org.json.JSONArray()
+        val startIndex = if (newArray.length() > 20) newArray.length() - 20 else 0
+        for (i in startIndex until newArray.length()) {
+            finalArray.put(newArray.getString(i))
+        }
+        
         prefs.edit()
+            .putString("video_history", finalArray.toString())
             .putString("last_video_uri", currentUri)
             .putString("last_video_title", currentTitle)
             .putLong("last_video_position", position)
