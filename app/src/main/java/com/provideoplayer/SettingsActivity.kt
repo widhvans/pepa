@@ -75,19 +75,11 @@ class SettingsActivity : AppCompatActivity() {
         binding.switchAutoPip.isChecked = prefs.getBoolean(KEY_AUTO_PIP, true)
         binding.switchHardwareAcceleration.isChecked = prefs.getBoolean(KEY_HARDWARE_ACCELERATION, true)
 
-        // Update theme text
-        updateThemeText()
-
         // Update speed text
         updateSpeedText()
     }
 
     private fun setupListeners() {
-        // Theme selection
-        binding.layoutTheme.setOnClickListener {
-            showThemeDialog()
-        }
-
         // Default speed selection
         binding.layoutDefaultSpeed.setOnClickListener {
             showSpeedDialog()
@@ -132,36 +124,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.layoutAbout.setOnClickListener {
             showAboutDialog()
         }
-    }
-
-    private fun showThemeDialog() {
-        val themes = arrayOf("System Default", "Light", "Dark", "AMOLED Black", "Blue Ocean", "Pink Rose")
-        val currentTheme = prefs.getInt(KEY_THEME, 0)
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle("App Theme")
-            .setSingleChoiceItems(themes, currentTheme) { dialog, which ->
-                prefs.edit().putInt(KEY_THEME, which).apply()
-                updateThemeText()
-                dialog.dismiss()
-                // Recreate activity to apply theme
-                recreate()
-            }
-            .show()
-    }
-
-    private fun applyTheme(mode: Int) {
-        when (mode) {
-            0 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-            1 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            else -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        }
-    }
-
-    private fun updateThemeText() {
-        val themes = arrayOf("System Default", "Light", "Dark", "AMOLED Black", "Blue Ocean", "Pink Rose")
-        val currentTheme = prefs.getInt(KEY_THEME, 0)
-        binding.textThemeValue.text = themes[currentTheme]
     }
 
     private fun showSpeedDialog() {
