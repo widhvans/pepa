@@ -133,13 +133,18 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_browse -> {
                     currentTab = 2
                     supportActionBar?.title = "Browse"
-                    showFolders()
+                    showBrowseMedia()
                     true
                 }
                 R.id.nav_playlist -> {
                     currentTab = 3
                     supportActionBar?.title = "Playlist"
                     showPlaylists()
+                    true
+                }
+                R.id.nav_network -> {
+                    currentTab = 4
+                    openNetworkStreamDialog()
                     true
                 }
                 else -> false
@@ -279,8 +284,8 @@ class MainActivity : AppCompatActivity() {
                 openSettings()
                 true
             }
-            R.id.action_history -> {
-                openHistory()
+            R.id.action_continue -> {
+                continueLastVideo()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -567,43 +572,48 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
     
-    private fun openHistory() {
+    private fun continueLastVideo() {
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
-        val historyJson = prefs.getString("video_history", "[]")
+        val lastUri = prefs.getString("last_video_uri", null)
+        val lastTitle = prefs.getString("last_video_title", "Video")
         
-        try {
-            val historyUris = org.json.JSONArray(historyJson)
-            
-            if (historyUris.length() == 0) {
-                Toast.makeText(this, "No history yet. Start watching a video!", Toast.LENGTH_SHORT).show()
-                return
-            }
-            
-            // Build list of titles
-            val historyItems = mutableListOf<Pair<String, String>>() // title to uri
-            for (i in historyUris.length() - 1 downTo 0) { // Recent first
-                val uri = historyUris.getString(i)
-                val video = allVideos.find { it.uri.toString() == uri }
-                val title = video?.title ?: uri.substringAfterLast("/")
-                historyItems.add(title to uri)
-            }
-            
-            val titles = historyItems.map { it.first }.toTypedArray()
-            
-            MaterialAlertDialogBuilder(this)
-                .setTitle("Recently Watched")
-                .setItems(titles) { _, which ->
-                    val (title, uri) = historyItems[which]
-                    val intent = Intent(this, PlayerActivity::class.java).apply {
-                        putExtra(PlayerActivity.EXTRA_VIDEO_URI, uri)
-                        putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, title)
-                    }
-                    startActivity(intent)
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "No history yet. Start watching a video!", Toast.LENGTH_SHORT).show()
+        if (lastUri.isNullOrEmpty()) {
+            Toast.makeText(this, "No video to continue. Start watching!", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Check if it's a video (not audio)
+        val isAudio = lastUri.contains("/audio/") || 
+                     lastUri.endsWith(".mp3", true) || 
+                     lastUri.endsWith(".m4a", true) ||
+                     lastUri.endsWith(".flac", true)
+        
+        if (isAudio) {
+            Toast.makeText(this, "Last played was audio. Play a video to continue!", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        val intent = Intent(this, PlayerActivity::class.java).apply {
+            putExtra(PlayerActivity.EXTRA_VIDEO_URI, lastUri)
+            putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, lastTitle)
+        }
+        startActivity(intent)
+    }
+    
+    private fun showBrowseMedia() {
+        // Show folders that contain both video and audio
+        isShowingFolders = true
+        binding.recyclerView.adapter = folderAdapter
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        
+        if (allFolders.isEmpty()) {
+            binding.recyclerView.visibility = View.GONE
+            binding.emptyView.visibility = View.VISIBLE
+            binding.emptyText.text = "No media folders found"
+        } else {
+            binding.emptyView.visibility = View.GONE
+            binding.recyclerView.visibility = View.VISIBLE
+            folderAdapter.submitList(allFolders)
         }
     }
 

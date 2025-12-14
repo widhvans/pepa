@@ -21,4 +21,9 @@
         android:icon="@drawable/ic_playlist"
         android:title="Playlist" />
 
+    <item
+        android:id="@+id/nav_network"
+        android:icon="@drawable/ic_network"
+        android:title="Stream" />
+
 </menu>
