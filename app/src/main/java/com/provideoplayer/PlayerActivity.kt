@@ -419,34 +419,115 @@ class PlayerActivity : AppCompatActivity() {
                 return@let
             }
             
-            val mediaItems = playlist.mapNotNull { uriString ->
-                try {
-                    val uri = Uri.parse(uriString)
-                    val mimeType = getMimeType(uriString)
-                    
-                    android.util.Log.d("PlayerActivity", "Creating MediaItem - URI: $uriString, MIME: $mimeType")
-                    
-                    MediaItem.Builder()
-                        .setUri(uri)
-                        .apply {
-                            mimeType?.let { setMimeType(it) }
-                        }
-                        .build()
-                } catch (e: Exception) {
-                    android.util.Log.e("PlayerActivity", "Error creating MediaItem for: $uriString", e)
-                    null
-                }
-            }
+            // Get start position from intent (for resume playback)
+            val startPosition = intent.getLongExtra(EXTRA_VIDEO_POSITION, 0L)
             
-            if (mediaItems.isEmpty()) {
-                Toast.makeText(this, "Failed to load video", Toast.LENGTH_SHORT).show()
-                return@let
+            // For network streams, use ProgressiveMediaSource directly
+            if (isNetworkStream) {
+                loadNetworkStreams(exoPlayer, startPosition)
+            } else {
+                loadLocalVideos(exoPlayer, startPosition)
             }
-            
-            // Ensure currentIndex is valid
-            val validIndex = currentIndex.coerceIn(0, mediaItems.size - 1)
-            exoPlayer.setMediaItems(mediaItems, validIndex, 0)
         }
+    }
+    
+    /**
+     * Load network streams using ProgressiveMediaSource - this bypasses HLS/DASH auto-detection
+     * and forces direct progressive download parsing
+     */
+    private fun loadNetworkStreams(exoPlayer: ExoPlayer, startPosition: Long) {
+        android.util.Log.d("PlayerActivity", "Loading network streams with ProgressiveMediaSource")
+        
+        // Create OkHttp data source for better network compatibility
+        val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val host = original.url.host
+                val requestBuilder = original.newBuilder()
+                    .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36")
+                    .header("Accept", "*/*")
+                    .header("Referer", "http://$host/")
+                    .method(original.method, original.body)
+                chain.proceed(requestBuilder.build())
+            }
+            .build()
+        
+        val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        val dataSourceFactory = DefaultDataSource.Factory(this, httpDataSourceFactory)
+        
+        // Create extractors factory for format detection from binary content
+        val extractorsFactory = DefaultExtractorsFactory()
+            .setConstantBitrateSeekingEnabled(true)
+        
+        // Create ProgressiveMediaSource factory
+        val progressiveMediaSourceFactory = ProgressiveMediaSource.Factory(
+            dataSourceFactory,
+            extractorsFactory
+        )
+        
+        // Create media sources for all items
+        val mediaSources = playlist.mapNotNull { uriString ->
+            try {
+                val uri = Uri.parse(uriString)
+                val mediaItem = MediaItem.Builder()
+                    .setUri(uri)
+                    .build()
+                progressiveMediaSourceFactory.createMediaSource(mediaItem)
+            } catch (e: Exception) {
+                android.util.Log.e("PlayerActivity", "Error creating MediaSource for: $uriString", e)
+                null
+            }
+        }
+        
+        if (mediaSources.isEmpty()) {
+            Toast.makeText(this, "Failed to load stream", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Set media sources with start position
+        val validIndex = currentIndex.coerceIn(0, mediaSources.size - 1)
+        exoPlayer.setMediaSources(mediaSources, validIndex, startPosition)
+        
+        android.util.Log.d("PlayerActivity", "Loaded ${mediaSources.size} network streams, starting at index $validIndex, position $startPosition")
+    }
+    
+    /**
+     * Load local videos using standard MediaItem approach
+     */
+    private fun loadLocalVideos(exoPlayer: ExoPlayer, startPosition: Long) {
+        val mediaItems = playlist.mapNotNull { uriString ->
+            try {
+                val uri = Uri.parse(uriString)
+                val mimeType = getMimeType(uriString)
+                
+                android.util.Log.d("PlayerActivity", "Creating MediaItem - URI: $uriString, MIME: $mimeType")
+                
+                MediaItem.Builder()
+                    .setUri(uri)
+                    .apply {
+                        mimeType?.let { setMimeType(it) }
+                    }
+                    .build()
+            } catch (e: Exception) {
+                android.util.Log.e("PlayerActivity", "Error creating MediaItem for: $uriString", e)
+                null
+            }
+        }
+        
+        if (mediaItems.isEmpty()) {
+            Toast.makeText(this, "Failed to load video", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Ensure currentIndex is valid
+        val validIndex = currentIndex.coerceIn(0, mediaItems.size - 1)
+        exoPlayer.setMediaItems(mediaItems, validIndex, startPosition)
+        
+        android.util.Log.d("PlayerActivity", "Loaded ${mediaItems.size} local videos, starting at index $validIndex, position $startPosition")
     }
     
     /**

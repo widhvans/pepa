@@ -943,15 +943,23 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
         val lastUri = prefs.getString("last_video_uri", null)
         val lastTitle = prefs.getString("last_video_title", "Video")
+        val lastPosition = prefs.getLong("last_video_position", 0L)
         
         if (lastUri.isNullOrEmpty()) {
             Toast.makeText(this, "No video to continue. Start watching!", Toast.LENGTH_SHORT).show()
             return
         }
         
+        // Check if it's a network stream
+        val isNetworkStream = lastUri.startsWith("http://") || lastUri.startsWith("https://")
+        
         val intent = Intent(this, PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_VIDEO_URI, lastUri)
             putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, lastTitle)
+            putExtra(PlayerActivity.EXTRA_VIDEO_POSITION, lastPosition)  // Resume from saved position
+            putExtra(PlayerActivity.EXTRA_IS_NETWORK_STREAM, isNetworkStream)
+            putStringArrayListExtra(PlayerActivity.EXTRA_PLAYLIST, arrayListOf(lastUri))
+            putStringArrayListExtra(PlayerActivity.EXTRA_PLAYLIST_TITLES, arrayListOf(lastTitle ?: "Video"))
         }
         startActivity(intent)
     }
