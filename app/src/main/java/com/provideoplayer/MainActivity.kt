@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     
     // Scroll position state for preserving list position per tab
     private val tabScrollPositions = mutableMapOf<Int, android.os.Parcelable?>()
+    private var pendingScrollRestore: Int? = null  // Tab index to restore after content loads
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply saved theme before calling super.onCreate and setContentView
@@ -194,9 +195,9 @@ class MainActivity : AppCompatActivity() {
                     binding.swipeRefresh.setPadding(0, 0, 0, 0)  // Reset padding
                     currentFolderId = null
                     currentFolderPath = null
+                    // Set pending restore - will be executed after content loads
+                    pendingScrollRestore = 0
                     loadVideos()
-                    // Restore scroll position after a short delay to let content load
-                    restoreTabScrollPosition(0)
                     true
                 }
                 R.id.nav_audio -> {
@@ -206,8 +207,8 @@ class MainActivity : AppCompatActivity() {
                     binding.swipeRefresh.setPadding(0, 0, 0, 0)  // Reset padding
                     currentFolderId = null
                     currentFolderPath = null
+                    pendingScrollRestore = 1
                     showAudioFiles()
-                    restoreTabScrollPosition(1)
                     true
                 }
                 R.id.nav_browse -> {
@@ -217,8 +218,8 @@ class MainActivity : AppCompatActivity() {
                     supportActionBar?.setDisplayHomeAsUpEnabled(false)
                     currentFolderId = null
                     currentFolderPath = null
+                    pendingScrollRestore = 2
                     showBrowseMedia()
-                    restoreTabScrollPosition(2)
                     true
                 }
                 R.id.nav_playlist -> {
@@ -229,8 +230,8 @@ class MainActivity : AppCompatActivity() {
                     binding.swipeRefresh.setPadding(0, 0, 0, 0)  // Reset padding
                     currentFolderId = null
                     currentFolderPath = null
+                    pendingScrollRestore = 3
                     showPlaylists()
-                    restoreTabScrollPosition(3)
                     true
                 }
                 R.id.nav_network -> {
@@ -249,13 +250,13 @@ class MainActivity : AppCompatActivity() {
         tabScrollPositions[currentTab] = scrollPosition
     }
     
-    private fun restoreTabScrollPosition(tabIndex: Int) {
-        val savedPosition = tabScrollPositions[tabIndex]
+    private fun restorePendingScrollPosition() {
+        val tabToRestore = pendingScrollRestore ?: return
+        pendingScrollRestore = null  // Clear the flag
+        
+        val savedPosition = tabScrollPositions[tabToRestore]
         if (savedPosition != null) {
-            // Delay restoration to ensure content is loaded
-            binding.recyclerView.post {
-                binding.recyclerView.layoutManager?.onRestoreInstanceState(savedPosition)
-            }
+            binding.recyclerView.layoutManager?.onRestoreInstanceState(savedPosition)
         }
     }
     
@@ -282,7 +283,9 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     binding.emptyView.visibility = View.GONE
                     binding.recyclerView.visibility = View.VISIBLE
-                    videoAdapter.submitList(audioFiles)
+                    videoAdapter.submitList(audioFiles) {
+                        restorePendingScrollPosition()
+                    }
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
@@ -320,7 +323,9 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.emptyView.visibility = View.GONE
                 binding.recyclerView.visibility = View.VISIBLE
-                videoAdapter.submitList(historyVideos.reversed()) // Recent first
+                videoAdapter.submitList(historyVideos.reversed()) { // Recent first
+                    restorePendingScrollPosition()
+                }
             }
         } catch (e: Exception) {
             binding.recyclerView.visibility = View.GONE
@@ -558,7 +563,9 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.emptyView.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
-            videoAdapter.submitList(videoFiles)
+            videoAdapter.submitList(videoFiles) {
+                restorePendingScrollPosition()
+            }
         }
     }
 
@@ -574,7 +581,9 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.emptyView.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
-            folderAdapter.submitList(allFolders)
+            folderAdapter.submitList(allFolders) {
+                restorePendingScrollPosition()
+            }
         }
     }
 
