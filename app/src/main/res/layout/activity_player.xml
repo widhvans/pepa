@@ -24,6 +24,23 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Audio CD Visualization (shown only for audio files) -->
+    <FrameLayout
+        android:id="@+id/audioCdContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/audioCdImage"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_audio_cd"
+            android:scaleType="fitCenter" />
+
+    </FrameLayout>
+
     <!-- Top Bar -->
     <LinearLayout
         android:id="@+id/topBar"

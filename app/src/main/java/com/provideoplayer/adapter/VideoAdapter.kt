@@ -50,9 +50,23 @@ class VideoAdapter(
                          video.path.endsWith(".wav", true) ||
                          video.path.endsWith(".aac", true)
             
-            // Check if video is in history (only for video files)
-            if (!isAudio) {
-                val prefs = itemView.context.getSharedPreferences("pro_video_player_prefs", android.content.Context.MODE_PRIVATE)
+            val prefs = itemView.context.getSharedPreferences("pro_video_player_prefs", android.content.Context.MODE_PRIVATE)
+            
+            // Check if media is in history (separate history for audio and video)
+            if (isAudio) {
+                val audioHistoryJson = prefs.getString("audio_history", "[]") ?: "[]"
+                val isListened = audioHistoryJson.contains(video.uri.toString())
+                
+                if (isListened) {
+                    size.text = video.getFormattedSize()
+                    size.setTextColor(itemView.context.getColor(R.color.text_secondary))
+                    size.setTypeface(null, android.graphics.Typeface.NORMAL)
+                } else {
+                    size.text = "● NEW"
+                    size.setTextColor(android.graphics.Color.parseColor("#00BFFF"))  // Deep sky blue for audio
+                    size.setTypeface(null, android.graphics.Typeface.BOLD)
+                }
+            } else {
                 val historyJson = prefs.getString("video_history", "[]") ?: "[]"
                 val isWatched = historyJson.contains(video.uri.toString())
                 
@@ -62,12 +76,9 @@ class VideoAdapter(
                     size.setTypeface(null, android.graphics.Typeface.NORMAL)
                 } else {
                     size.text = "● NEW"
-                    size.setTextColor(android.graphics.Color.parseColor("#00FF7F"))  // Bright green
+                    size.setTextColor(android.graphics.Color.parseColor("#00FF7F"))  // Bright green for video
                     size.setTypeface(null, android.graphics.Typeface.BOLD)
                 }
-            } else {
-                size.text = video.getFormattedSize()
-                size.setTextColor(itemView.context.getColor(R.color.text_secondary))
             }
             
             // Show resolution if available

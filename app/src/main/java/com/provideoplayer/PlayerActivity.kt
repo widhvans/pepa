@@ -104,6 +104,10 @@ class PlayerActivity : AppCompatActivity() {
     
     // PiP
     private var isPipMode = false
+    
+    // Audio playback visualization
+    private var isAudioFile = false
+    private var cdAnimator: android.animation.ObjectAnimator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -192,11 +196,48 @@ class PlayerActivity : AppCompatActivity() {
             // Set title
             binding.videoTitle.text = playlistTitles.getOrNull(currentIndex) ?: "Video"
             
+            // Check if current media is audio
+            val currentUri = playlist.getOrNull(currentIndex) ?: ""
+            isAudioFile = currentUri.endsWith(".mp3", true) ||
+                         currentUri.endsWith(".m4a", true) ||
+                         currentUri.endsWith(".aac", true) ||
+                         currentUri.endsWith(".wav", true) ||
+                         currentUri.endsWith(".flac", true) ||
+                         currentUri.endsWith(".ogg", true) ||
+                         currentUri.contains("/audio/")
+            
+            // Setup CD visualization for audio
+            setupAudioVisualization()
+            
             // Debug log
-            android.util.Log.d("PlayerActivity", "Playlist size: ${playlist.size}, currentIndex: $currentIndex")
+            android.util.Log.d("PlayerActivity", "Playlist size: ${playlist.size}, currentIndex: $currentIndex, isAudio: $isAudioFile")
             if (playlist.isNotEmpty()) {
                 android.util.Log.d("PlayerActivity", "First URI: ${playlist[0]}")
             }
+        }
+    }
+    
+    private fun setupAudioVisualization() {
+        if (isAudioFile) {
+            // Show CD container for audio files
+            binding.audioCdContainer.visibility = View.VISIBLE
+            
+            // Create rotation animation
+            cdAnimator = android.animation.ObjectAnimator.ofFloat(
+                binding.audioCdImage,
+                "rotation",
+                0f,
+                360f
+            ).apply {
+                duration = 3000  // 3 seconds per rotation
+                repeatCount = android.animation.ObjectAnimator.INFINITE
+                interpolator = android.view.animation.LinearInterpolator()
+            }
+        } else {
+            // Hide CD container for video files
+            binding.audioCdContainer.visibility = View.GONE
+            cdAnimator?.cancel()
+            cdAnimator = null
         }
     }
 
@@ -488,9 +529,23 @@ class PlayerActivity : AppCompatActivity() {
             if (isPlaying) {
                 startProgressUpdates()
                 scheduleHideControls()
+                // Start CD animation for audio files
+                if (isAudioFile) {
+                    cdAnimator?.let {
+                        if (!it.isStarted) {
+                            it.start()
+                        } else if (it.isPaused) {
+                            it.resume()
+                        }
+                    }
+                }
             } else {
                 stopProgressUpdates()
                 showControls()
+                // Pause CD animation for audio files
+                if (isAudioFile) {
+                    cdAnimator?.pause()
+                }
             }
         }
         
@@ -538,6 +593,22 @@ class PlayerActivity : AppCompatActivity() {
             currentIndex = player?.currentMediaItemIndex ?: 0
             binding.videoTitle.text = playlistTitles.getOrNull(currentIndex) ?: "Video"
             updatePrevNextButtons()
+            
+            // Check if new media is audio file and update CD visualization
+            val currentUri = playlist.getOrNull(currentIndex) ?: ""
+            val wasAudio = isAudioFile
+            isAudioFile = currentUri.endsWith(".mp3", true) ||
+                         currentUri.endsWith(".m4a", true) ||
+                         currentUri.endsWith(".aac", true) ||
+                         currentUri.endsWith(".wav", true) ||
+                         currentUri.endsWith(".flac", true) ||
+                         currentUri.endsWith(".ogg", true) ||
+                         currentUri.contains("/audio/")
+            
+            // Update visualization if audio state changed
+            if (wasAudio != isAudioFile) {
+                setupAudioVisualization()
+            }
         }
     }
 
@@ -1326,6 +1397,8 @@ class PlayerActivity : AppCompatActivity() {
         super.onDestroy()
         hideHandler.removeCallbacksAndMessages(null)
         progressHandler.removeCallbacksAndMessages(null) // Clean up progress handler too
+        cdAnimator?.cancel() // Clean up CD animation
+        cdAnimator = null
         player?.release()
         player = null
     }

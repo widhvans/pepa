@@ -36,10 +36,48 @@
             android:layout_height="0dp"
             android:layout_weight="1">
 
+            <!-- Filter Bar for Browse Tab -->
+            <LinearLayout
+                android:id="@+id/filterBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="?colorSurface"
+                android:elevation="2dp"
+                android:visibility="gone">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFilterVideo"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="Videos"
+                    app:icon="@drawable/ic_video"
+                    app:iconGravity="textStart"
+                    app:iconSize="18dp"
+                    app:cornerRadius="20dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFilterAudio"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Audio"
+                    app:icon="@drawable/ic_audio"
+                    app:iconGravity="textStart"
+                    app:iconSize="18dp"
+                    app:cornerRadius="20dp" />
+
+            </LinearLayout>
+
             <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/swipeRefresh"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:layout_marginTop="0dp">
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerView"
@@ -161,7 +199,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="80dp"
+        android:layout_marginBottom="100dp"
         android:contentDescription="Continue Video"
         android:src="@drawable/ic_play"
         app:backgroundTint="?colorPrimary"

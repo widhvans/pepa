@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private var isShowingFolders = true
     private var searchQuery: String = ""
     private var currentTab = 0  // 0=Videos, 1=Audio, 2=Browse, 3=Playlist
+    private var browseFilter = 0  // 0=All, 1=Videos only, 2=Audio only
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply saved theme before calling super.onCreate and setContentView
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity() {
         setupSwipeRefresh()
         setupBottomNavigation()
         setupFab()
+        setupFilterButtons()
         
         checkPermissionAndLoadVideos()
     }
@@ -115,18 +117,69 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun setupFilterButtons() {
+        binding.btnFilterVideo.setOnClickListener {
+            browseFilter = if (browseFilter == 1) 0 else 1  // Toggle video filter
+            updateFilterButtonStyles()
+            if (currentFolderId != null) {
+                showVideosInFolder(currentFolderId!!)
+            } else {
+                showBrowseMedia()
+            }
+        }
+        
+        binding.btnFilterAudio.setOnClickListener {
+            browseFilter = if (browseFilter == 2) 0 else 2  // Toggle audio filter
+            updateFilterButtonStyles()
+            if (currentFolderId != null) {
+                showVideosInFolder(currentFolderId!!)
+            } else {
+                showBrowseMedia()
+            }
+        }
+    }
+    
+    private fun updateFilterButtonStyles() {
+        // Reset both buttons to outlined style
+        binding.btnFilterVideo.strokeWidth = if (browseFilter == 1) 0 else 2
+        binding.btnFilterAudio.strokeWidth = if (browseFilter == 2) 0 else 2
+        
+        // Set selected button background
+        if (browseFilter == 1) {
+            binding.btnFilterVideo.setBackgroundColor(getColor(R.color.purple_500))
+            binding.btnFilterVideo.setTextColor(getColor(R.color.white))
+            binding.btnFilterVideo.iconTint = android.content.res.ColorStateList.valueOf(getColor(R.color.white))
+        } else {
+            binding.btnFilterVideo.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.btnFilterVideo.setTextColor(getColor(R.color.purple_500))
+            binding.btnFilterVideo.iconTint = android.content.res.ColorStateList.valueOf(getColor(R.color.purple_500))
+        }
+        
+        if (browseFilter == 2) {
+            binding.btnFilterAudio.setBackgroundColor(getColor(R.color.purple_500))
+            binding.btnFilterAudio.setTextColor(getColor(R.color.white))
+            binding.btnFilterAudio.iconTint = android.content.res.ColorStateList.valueOf(getColor(R.color.white))
+        } else {
+            binding.btnFilterAudio.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.btnFilterAudio.setTextColor(getColor(R.color.purple_500))
+            binding.btnFilterAudio.iconTint = android.content.res.ColorStateList.valueOf(getColor(R.color.purple_500))
+        }
+    }
+    
     private fun setupBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_videos -> {
                     currentTab = 0
                     supportActionBar?.title = "Videos"
+                    binding.filterBar.visibility = View.GONE
                     loadVideos()
                     true
                 }
                 R.id.nav_audio -> {
                     currentTab = 1
                     supportActionBar?.title = "Audio"
+                    binding.filterBar.visibility = View.GONE
                     showAudioFiles()
                     true
                 }
@@ -139,6 +192,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_playlist -> {
                     currentTab = 3
                     supportActionBar?.title = "Playlist"
+                    binding.filterBar.visibility = View.GONE
                     showPlaylists()
                     true
                 }
@@ -466,11 +520,36 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.adapter = videoAdapter
         binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
         
-        val folderVideos = allVideos.filter { it.folderId == folderId }
+        // Get folder files and apply browse filter if in Browse tab
+        var folderVideos = allVideos.filter { it.folderId == folderId }
+        
+        // Apply filter based on browseFilter when in Browse tab
+        if (currentTab == 2 && browseFilter > 0) {
+            folderVideos = folderVideos.filter { video ->
+                val isAudio = video.mimeType.startsWith("audio") ||
+                             video.path.endsWith(".mp3", true) ||
+                             video.path.endsWith(".m4a", true) ||
+                             video.path.endsWith(".aac", true) ||
+                             video.path.endsWith(".wav", true) ||
+                             video.path.endsWith(".flac", true)
+                             
+                when (browseFilter) {
+                    1 -> !isAudio  // Videos only
+                    2 -> isAudio   // Audio only
+                    else -> true
+                }
+            }
+        }
+        
         videoAdapter.submitList(folderVideos)
         
         if (folderVideos.isEmpty()) {
             binding.emptyView.visibility = View.VISIBLE
+            binding.emptyText.text = when (browseFilter) {
+                1 -> "No videos in this folder"
+                2 -> "No audio files in this folder"
+                else -> "No media files found"
+            }
         } else {
             binding.emptyView.visibility = View.GONE
         }
@@ -530,7 +609,9 @@ class MainActivity : AppCompatActivity() {
                      video.path.endsWith(".wav", true) ||
                      video.path.endsWith(".aac", true)
         
-        if (!isAudio) {
+        if (isAudio) {
+            saveAudioToHistory(video.uri.toString())
+        } else {
             saveVideoToHistory(video.uri.toString(), video.title)
         }
         
@@ -597,6 +678,40 @@ class MainActivity : AppCompatActivity() {
             .putString("last_video_title", title)
             .apply()
     }
+    
+    private fun saveAudioToHistory(uri: String) {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("audio_history", "[]") ?: "[]"
+        
+        val historyArray = try {
+            org.json.JSONArray(historyJson)
+        } catch (e: Exception) {
+            org.json.JSONArray()
+        }
+        
+        // Remove if already exists (to move to end)
+        val newArray = org.json.JSONArray()
+        for (i in 0 until historyArray.length()) {
+            val existingUri = historyArray.getString(i)
+            if (existingUri != uri) {
+                newArray.put(existingUri)
+            }
+        }
+        
+        // Add current audio to end
+        newArray.put(uri)
+        
+        // Keep only last 50 items
+        val finalArray = org.json.JSONArray()
+        val startIndex = if (newArray.length() > 50) newArray.length() - 50 else 0
+        for (i in startIndex until newArray.length()) {
+            finalArray.put(newArray.getString(i))
+        }
+        
+        prefs.edit()
+            .putString("audio_history", finalArray.toString())
+            .apply()
+    }
 
     private fun showVideoInfo(video: VideoItem) {
         MaterialAlertDialogBuilder(this)
@@ -643,10 +758,16 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showBrowseMedia() {
+        // Show filter bar for browse tab
+        binding.filterBar.visibility = View.VISIBLE
+        
         // Show folders that contain both video and audio
         isShowingFolders = true
         binding.recyclerView.adapter = folderAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        
+        // Add top padding to recyclerview to account for filter bar
+        binding.swipeRefresh.setPadding(0, 56.dpToPx(), 0, 0)
         
         if (allFolders.isEmpty()) {
             binding.recyclerView.visibility = View.GONE
@@ -657,6 +778,10 @@ class MainActivity : AppCompatActivity() {
             binding.recyclerView.visibility = View.VISIBLE
             folderAdapter.submitList(allFolders)
         }
+    }
+    
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
     }
     
     private fun openHistory() {
@@ -703,6 +828,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         if (PermissionManager.hasStoragePermission(this) && allVideos.isEmpty()) {
             loadVideos()
+        } else {
+            // Refresh adapter to update NEW tags after returning from player
+            // This forces a rebind which re-checks history
+            val currentList = videoAdapter.currentList.toList()
+            videoAdapter.submitList(null)
+            videoAdapter.submitList(currentList)
         }
     }
 
