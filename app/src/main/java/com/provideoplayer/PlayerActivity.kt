@@ -362,6 +362,9 @@ class PlayerActivity : AppCompatActivity() {
         // NOW load playlist (player is no longer null!)
         loadPlaylist()
         
+        // Set repeat mode to loop single video (no autoplay next)
+        exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
+        
         // Start playback
         android.util.Log.d("PlayerActivity", ">>> Calling prepare() and setting playWhenReady=true")
         exoPlayer.prepare()

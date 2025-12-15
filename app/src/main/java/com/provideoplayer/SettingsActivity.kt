@@ -69,7 +69,6 @@ class SettingsActivity : AppCompatActivity() {
     private fun loadSettings() {
         // Load saved preferences
         binding.switchResumePlayback.isChecked = prefs.getBoolean(KEY_RESUME_PLAYBACK, true)
-        binding.switchAutoPlayNext.isChecked = prefs.getBoolean(KEY_AUTO_PLAY_NEXT, true)
         binding.switchGestureControls.isChecked = prefs.getBoolean(KEY_GESTURE_CONTROLS, true)
         binding.switchDoubleTapSeek.isChecked = prefs.getBoolean(KEY_DOUBLE_TAP_SEEK, true)
         binding.switchAutoPip.isChecked = prefs.getBoolean(KEY_AUTO_PIP, true)
@@ -88,11 +87,6 @@ class SettingsActivity : AppCompatActivity() {
         // Resume playback
         binding.switchResumePlayback.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean(KEY_RESUME_PLAYBACK, isChecked).apply()
-        }
-
-        // Auto play next
-        binding.switchAutoPlayNext.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean(KEY_AUTO_PLAY_NEXT, isChecked).apply()
         }
 
         // Gesture controls

@@ -21,9 +21,13 @@ class VideoAdapter(
     private val onVideoLongClick: (VideoItem) -> Boolean
 ) : ListAdapter<VideoItem, VideoAdapter.VideoViewHolder>(VideoDiffCallback()) {
 
+    // Set to true for list view, false for grid view
+    var isListView: Boolean = false
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoViewHolder {
+        val layoutRes = if (isListView) R.layout.item_video_list else R.layout.item_video
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_video, parent, false)
+            .inflate(layoutRes, parent, false)
         return VideoViewHolder(view)
     }
 
