@@ -194,8 +194,8 @@ class PlayerActivity : AppCompatActivity() {
         newIntent?.let { intentData ->
             android.util.Log.d("PlayerActivity", "onNewIntent: New video intent received, isPipMode=$isPipMode")
             
-            // Update intent first
-            intent = intentData
+            // Update activity intent properly using setIntent()
+            setIntent(intentData)
             
             // Clear current player state completely
             player?.let { exoPlayer ->
