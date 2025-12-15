@@ -704,11 +704,35 @@ class PlayerActivity : AppCompatActivity() {
                 
                 // Calculate new scale
                 val scaleFactor = detector.scaleFactor
-                currentScale = (currentScale * scaleFactor).coerceIn(minScale, maxScale)
+                val newScale = (currentScale * scaleFactor).coerceIn(minScale, maxScale)
                 
-                // Apply zoom to player view
-                binding.playerView.scaleX = currentScale
-                binding.playerView.scaleY = currentScale
+                // Calculate focal point relative to view center
+                val focusX = detector.focusX
+                val focusY = detector.focusY
+                val playerView = binding.playerView
+                val viewCenterX = playerView.width / 2f
+                val viewCenterY = playerView.height / 2f
+                
+                // Adjust translation to zoom at focal point
+                if (newScale > currentScale) {
+                    // Zooming in - move towards focal point
+                    val dx = (focusX - viewCenterX) * (1 - scaleFactor) * 0.5f
+                    val dy = (focusY - viewCenterY) * (1 - scaleFactor) * 0.5f
+                    currentTranslateX += dx
+                    currentTranslateY += dy
+                } else if (newScale < currentScale && newScale > minScale) {
+                    // Zooming out - return towards center
+                    currentTranslateX *= scaleFactor
+                    currentTranslateY *= scaleFactor
+                }
+                
+                currentScale = newScale
+                
+                // Apply zoom and translation
+                playerView.scaleX = currentScale
+                playerView.scaleY = currentScale
+                playerView.translationX = currentTranslateX
+                playerView.translationY = currentTranslateY
                 
                 return true
             }
@@ -836,8 +860,10 @@ class PlayerActivity : AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     val duration = player?.duration ?: 0
-                    val position = (duration * progress / 100).toLong()
-                    binding.currentTime.text = formatTime(position)
+                    if (duration > 0) {
+                        val position = (duration * progress / 100).toLong()
+                        binding.currentTime.text = formatTime(position)
+                    }
                 }
             }
             
@@ -847,9 +873,17 @@ class PlayerActivity : AppCompatActivity() {
             
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 val duration = player?.duration ?: 0
-                val progress = seekBar?.progress ?: 0
-                val position = (duration * progress / 100).toLong()
-                player?.seekTo(position)
+                // Only seek if duration is valid (positive) and stream is seekable
+                if (duration > 0 && player?.isCurrentMediaItemSeekable == true) {
+                    val progress = seekBar?.progress ?: 0
+                    val position = (duration * progress / 100).toLong()
+                    player?.seekTo(position)
+                } else if (duration <= 0) {
+                    // For live streams or unknown duration, show message
+                    Toast.makeText(this@PlayerActivity, "Cannot seek - unknown duration", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@PlayerActivity, "This stream is not seekable", Toast.LENGTH_SHORT).show()
+                }
                 startProgressUpdates()
             }
         })
@@ -1380,15 +1414,18 @@ class PlayerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         hideSystemUI()
-        // Only auto-play if not in PiP mode (PiP handles its own playback)
-        if (!isPipMode) {
+        // Only auto-play if not in PiP mode
+        val inPip = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInPictureInPictureMode else false
+        if (!inPip) {
             player?.playWhenReady = true
         }
     }
 
     override fun onPause() {
         super.onPause()
-        if (!isPipMode) {
+        // Check if entering PiP mode - if so, keep playing
+        val inPip = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInPictureInPictureMode else false
+        if (!inPip) {
             saveToHistory()
             player?.playWhenReady = false
         }
@@ -1450,7 +1487,9 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (!isPipMode) {
+        // Don't pause if in PiP mode
+        val inPip = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInPictureInPictureMode else false
+        if (!inPip) {
             player?.playWhenReady = false
         }
     }
