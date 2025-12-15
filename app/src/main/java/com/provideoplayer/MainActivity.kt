@@ -234,7 +234,7 @@ class MainActivity : AppCompatActivity() {
         // Show direct audio files (like Video tab)
         isShowingFolders = false
         binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        applyVideoLayoutPreference()
         
         // Scan audio files from MediaStore
         binding.progressBar.visibility = View.VISIBLE
@@ -268,7 +268,7 @@ class MainActivity : AppCompatActivity() {
         // Show recently watched videos as playlist
         isShowingFolders = false
         binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        applyVideoLayoutPreference()
         
         // Load history from prefs
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
@@ -511,7 +511,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAllVideos() {
         isShowingFolders = false
         binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        applyVideoLayoutPreference()
         
         // Filter only video files (not audio)
         val videoFiles = allVideos.filter { 
@@ -579,7 +579,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAudioInFolder(folderPath: String) {
         isShowingFolders = false
         binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        applyVideoLayoutPreference()
         
         // Load audio files from this folder only (not subdirectories)
         binding.progressBar.visibility = View.VISIBLE
@@ -611,7 +611,7 @@ class MainActivity : AppCompatActivity() {
     private fun showVideosInFolder(folderId: Long) {
         isShowingFolders = false
         binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        applyVideoLayoutPreference()
         
         // Get folder files and apply browse filter if in Browse tab
         var folderVideos = allVideos.filter { it.folderId == folderId }
@@ -651,7 +651,7 @@ class MainActivity : AppCompatActivity() {
     private fun searchVideos(query: String) {
         isShowingFolders = false
         binding.recyclerView.adapter = videoAdapter
-        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
+        applyVideoLayoutPreference()
         
         val results = allVideos.filter { 
             it.title.contains(query, ignoreCase = true) ||
@@ -686,11 +686,41 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setLayoutMode(isGrid: Boolean) {
+        // Save current preference
+        getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+            .edit()
+            .putBoolean("is_grid_view", isGrid)
+            .apply()
+        
+        // Update layout manager
         binding.recyclerView.layoutManager = if (isGrid) {
             GridLayoutManager(this, 2)
         } else {
             LinearLayoutManager(this)
         }
+        
+        // Update adapter's view mode flag
+        videoAdapter.isListView = !isGrid
+        
+        // Force adapter to recreate views with correct layout
+        val currentList = videoAdapter.currentList.toList()
+        videoAdapter.submitList(null)
+        videoAdapter.submitList(currentList)
+    }
+    
+    private fun applyVideoLayoutPreference() {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val isGrid = prefs.getBoolean("is_grid_view", true)  // Default to grid
+        
+        // Apply layout manager based on saved preference
+        binding.recyclerView.layoutManager = if (isGrid) {
+            GridLayoutManager(this, 2)
+        } else {
+            LinearLayoutManager(this)
+        }
+        
+        // Update adapter's view mode flag
+        videoAdapter.isListView = !isGrid
     }
 
     private fun openPlayer(video: VideoItem, position: Int) {
