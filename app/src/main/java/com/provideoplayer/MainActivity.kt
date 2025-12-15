@@ -125,18 +125,22 @@ class MainActivity : AppCompatActivity() {
         binding.btnFilterVideo.setOnClickListener {
             browseFilter = 1  // Select video filter
             updateFilterButtonStyles()
-            // Only refresh if inside a folder
+            // Refresh folder list or folder contents
             if (currentFolderId != null) {
                 showVideosInFolder(currentFolderId!!)
+            } else {
+                showBrowseMedia()  // Refresh folder list with new filter
             }
         }
         
         binding.btnFilterAudio.setOnClickListener {
             browseFilter = 2  // Select audio filter
             updateFilterButtonStyles()
-            // Only refresh if inside a folder
+            // Refresh folder list or folder contents
             if (currentFolderId != null) {
                 showVideosInFolder(currentFolderId!!)
+            } else {
+                showBrowseMedia()  // Refresh folder list with new filter
             }
         }
     }
@@ -209,32 +213,32 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showAudioFiles() {
-        // Show folders containing audio files
-        isShowingFolders = true
-        binding.recyclerView.adapter = folderAdapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        // Show direct audio files (like Video tab)
+        isShowingFolders = false
+        binding.recyclerView.adapter = videoAdapter
+        binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
         
-        // Scan audio folders from MediaStore
+        // Scan audio files from MediaStore
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                val audioFolders = VideoScanner.getAllAudioFolders(this@MainActivity)
+                val audioFiles = VideoScanner.getAllAudio(this@MainActivity)
                 binding.progressBar.visibility = View.GONE
                 
-                if (audioFolders.isEmpty()) {
+                if (audioFiles.isEmpty()) {
                     binding.recyclerView.visibility = View.GONE
                     binding.emptyView.visibility = View.VISIBLE
-                    binding.emptyText.text = "No audio folders found"
+                    binding.emptyText.text = "No audio files found"
                 } else {
                     binding.emptyView.visibility = View.GONE
                     binding.recyclerView.visibility = View.VISIBLE
-                    folderAdapter.submitList(audioFolders)
+                    videoAdapter.submitList(audioFiles)
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
                 binding.recyclerView.visibility = View.GONE
                 binding.emptyView.visibility = View.VISIBLE
-                binding.emptyText.text = "Error loading audio folders"
+                binding.emptyText.text = "Error loading audio files"
             }
         }
     }
@@ -819,7 +823,7 @@ class MainActivity : AppCompatActivity() {
         // Show filter bar for browse tab
         binding.filterBar.visibility = View.VISIBLE
         
-        // Show folders that contain both video and audio
+        // Show folders that contain video or audio based on filter
         isShowingFolders = true
         binding.recyclerView.adapter = folderAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
@@ -827,14 +831,53 @@ class MainActivity : AppCompatActivity() {
         // Add top padding to recyclerview to account for filter bar
         binding.swipeRefresh.setPadding(0, 56.dpToPx(), 0, 0)
         
-        if (allFolders.isEmpty()) {
+        // Filter folders and recalculate counts based on browseFilter
+        val filteredFolders = when (browseFilter) {
+            1 -> {
+                // Video filter - show folders with videos, count only videos
+                allFolders.mapNotNull { folder ->
+                    val videoCount = allVideos.count { video ->
+                        video.folderId == folder.id &&
+                        !video.mimeType.startsWith("audio") &&
+                        !video.path.endsWith(".mp3", true) &&
+                        !video.path.endsWith(".m4a", true) &&
+                        !video.path.endsWith(".aac", true) &&
+                        !video.path.endsWith(".wav", true) &&
+                        !video.path.endsWith(".flac", true)
+                    }
+                    if (videoCount > 0) folder.copy(videoCount = videoCount) else null
+                }
+            }
+            2 -> {
+                // Audio filter - show folders with audio, count only audio
+                allFolders.mapNotNull { folder ->
+                    val audioCount = allVideos.count { video ->
+                        video.folderId == folder.id &&
+                        (video.mimeType.startsWith("audio") ||
+                        video.path.endsWith(".mp3", true) ||
+                        video.path.endsWith(".m4a", true) ||
+                        video.path.endsWith(".aac", true) ||
+                        video.path.endsWith(".wav", true) ||
+                        video.path.endsWith(".flac", true))
+                    }
+                    if (audioCount > 0) folder.copy(videoCount = audioCount) else null
+                }
+            }
+            else -> allFolders  // No filter
+        }
+        
+        if (filteredFolders.isEmpty()) {
             binding.recyclerView.visibility = View.GONE
             binding.emptyView.visibility = View.VISIBLE
-            binding.emptyText.text = "No media folders found"
+            binding.emptyText.text = when (browseFilter) {
+                1 -> "No video folders found"
+                2 -> "No audio folders found"
+                else -> "No media folders found"
+            }
         } else {
             binding.emptyView.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
-            folderAdapter.submitList(allFolders)
+            folderAdapter.submitList(filteredFolders.sortedByDescending { it.videoCount })
         }
     }
     
