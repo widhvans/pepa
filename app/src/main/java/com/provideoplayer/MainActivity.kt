@@ -1085,9 +1085,22 @@ class MainActivity : AppCompatActivity() {
                 .setTitle("Recently Watched")
                 .setItems(titles) { _, which ->
                     val (title, uri) = historyItems[which]
+                    
+                    // Check if it's a network stream
+                    val isNetworkStream = uri.startsWith("http://") || uri.startsWith("https://")
+                    
+                    // Load saved position for resume
+                    val savedPosition = getSavedPlaybackPosition(uri)
+                    
                     val intent = Intent(this, PlayerActivity::class.java).apply {
                         putExtra(PlayerActivity.EXTRA_VIDEO_URI, uri)
                         putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, title)
+                        putExtra(PlayerActivity.EXTRA_IS_NETWORK_STREAM, isNetworkStream)
+                        if (savedPosition > 0L) {
+                            putExtra(PlayerActivity.EXTRA_PLAYBACK_POSITION, savedPosition)
+                        }
+                        putStringArrayListExtra(PlayerActivity.EXTRA_PLAYLIST, arrayListOf(uri))
+                        putStringArrayListExtra(PlayerActivity.EXTRA_PLAYLIST_TITLES, arrayListOf(title))
                     }
                     startActivity(intent)
                 }
