@@ -43,6 +43,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -531,14 +532,47 @@ class PlayerActivity : AppCompatActivity() {
     }
     
     /**
-     * Retry playback with a specific MIME type for network streams
+     * Retry playback using ProgressiveMediaSource - this forces direct progressive download
+     * and bypasses HLS/DASH detection which was causing parsing failures
      */
     private fun retryWithMimeType(uriString: String, mimeType: String?) {
         player?.let { exoPlayer ->
             try {
                 val uri = Uri.parse(uriString)
                 
-                android.util.Log.d("PlayerActivity", "Retrying stream with MIME: $mimeType, URI: $uriString")
+                android.util.Log.d("PlayerActivity", "Retrying with ProgressiveMediaSource, MIME hint: $mimeType, URI: $uriString")
+                
+                // Create OkHttp data source for network requests
+                val okHttpClient = OkHttpClient.Builder()
+                    .connectTimeout(60, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS)
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .addInterceptor { chain ->
+                        val original = chain.request()
+                        val host = original.url.host
+                        val requestBuilder = original.newBuilder()
+                            .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36")
+                            .header("Accept", "*/*")
+                            .header("Referer", "http://$host/")
+                            .method(original.method, original.body)
+                        chain.proceed(requestBuilder.build())
+                    }
+                    .build()
+                
+                val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+                val dataSourceFactory = DefaultDataSource.Factory(this, httpDataSourceFactory)
+                
+                // Create extractors factory - uses all available extractors to detect format
+                val extractorsFactory = DefaultExtractorsFactory()
+                    .setConstantBitrateSeekingEnabled(true) // Enable CBR seeking
+                
+                // Create ProgressiveMediaSource - this forces progressive download parsing
+                // and uses extractors to detect format from actual binary content
+                val progressiveMediaSourceFactory = ProgressiveMediaSource.Factory(
+                    dataSourceFactory,
+                    extractorsFactory
+                )
                 
                 val mediaItem = MediaItem.Builder()
                     .setUri(uri)
@@ -547,17 +581,22 @@ class PlayerActivity : AppCompatActivity() {
                     }
                     .build()
                 
+                // Create the progressive media source
+                val mediaSource = progressiveMediaSourceFactory.createMediaSource(mediaItem)
+                
                 // Stop current playback
                 exoPlayer.stop()
                 
-                // Set new media item and prepare
-                exoPlayer.setMediaItem(mediaItem)
+                // Set media source directly and prepare
+                exoPlayer.setMediaSource(mediaSource)
                 exoPlayer.prepare()
                 exoPlayer.playWhenReady = true
                 
                 binding.progressBar.visibility = View.VISIBLE
+                
+                android.util.Log.d("PlayerActivity", "ProgressiveMediaSource created and set")
             } catch (e: Exception) {
-                android.util.Log.e("PlayerActivity", "Error retrying with MIME type: $mimeType", e)
+                android.util.Log.e("PlayerActivity", "Error retrying with ProgressiveMediaSource", e)
                 Toast.makeText(this, "Failed to retry: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
@@ -630,31 +669,29 @@ class PlayerActivity : AppCompatActivity() {
             val currentUri = playlist.getOrNull(currentIndex) ?: ""
             val isNetworkStream = currentUri.startsWith("http://") || currentUri.startsWith("https://")
             
-            // Check for all parsing-related errors that should trigger retry
+            // Check for all parsing-related errors that should trigger ProgressiveMediaSource retry
             val isParsingError = error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
                                  error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
                                  error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED ||
                                  error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED ||
-                                 error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
                                  error.message?.contains("Multiple Segment elements", true) == true ||
                                  error.cause?.message?.contains("Multiple Segment elements", true) == true ||
                                  error.cause?.message?.contains("EXTM3U", true) == true ||
                                  error.cause?.message?.contains("ParserException", true) == true
             
-            // For network streams with parsing errors, try different MIME types
-            if (isNetworkStream && isParsingError && currentMimeTypeIndex < fallbackMimeTypes.size - 1) {
-                currentMimeTypeIndex++
-                val nextMimeType = fallbackMimeTypes[currentMimeTypeIndex]
-                android.util.Log.d("PlayerActivity", "Retrying with MIME type: $nextMimeType (attempt ${currentMimeTypeIndex + 1}/${fallbackMimeTypes.size})")
+            // For network streams with parsing errors, try ProgressiveMediaSource once
+            if (isNetworkStream && isParsingError && currentMimeTypeIndex == 0) {
+                currentMimeTypeIndex = 1  // Mark that we've tried progressive
+                android.util.Log.d("PlayerActivity", "Retrying with ProgressiveMediaSource (forced progressive download)")
                 
                 Toast.makeText(
                     this@PlayerActivity, 
-                    "Trying format ${currentMimeTypeIndex + 1}/${fallbackMimeTypes.size}...", 
+                    "Trying progressive download...", 
                     Toast.LENGTH_SHORT
                 ).show()
                 
-                // Reload with new MIME type
-                retryWithMimeType(currentUri, nextMimeType)
+                // Reload using ProgressiveMediaSource
+                retryWithMimeType(currentUri, null)
                 return
             }
             
