@@ -5,10 +5,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
+    android:layout_margin="3dp"
     app:cardBackgroundColor="@color/surface_dark"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    app:cardCornerRadius="8dp"
+    app:cardElevation="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,7 +23,7 @@
             <ImageView
                 android:id="@+id/videoThumbnail"
                 android:layout_width="match_parent"
-                android:layout_height="100dp"
+                android:layout_height="85dp"
                 android:scaleType="centerCrop"
                 android:background="@color/surface_dark"
                 tools:src="@drawable/ic_video_placeholder" />
@@ -34,13 +34,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:layout_margin="6dp"
+                android:layout_margin="4dp"
                 android:background="@drawable/bg_duration_badge"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="2dp"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
                 android:text="00:00"
                 android:textColor="@color/white"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
 
             <!-- Resolution Badge -->
             <TextView
@@ -48,13 +48,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top|end"
-                android:layout_margin="6dp"
+                android:layout_margin="4dp"
                 android:background="@drawable/bg_resolution_badge"
-                android:paddingHorizontal="6dp"
-                android:paddingVertical="2dp"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
                 android:text="HD"
                 android:textColor="@color/white"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:visibility="gone" />
 
         </FrameLayout>
@@ -64,7 +64,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="6dp">
 
             <TextView
                 android:id="@+id/videoTitle"
@@ -73,16 +73,16 @@
                 android:ellipsize="end"
                 android:maxLines="2"
                 android:textColor="@color/text_primary"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 tools:text="Video Title Here" />
 
             <TextView
                 android:id="@+id/videoSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 tools:text="25.5 MB" />
 
         </LinearLayout>

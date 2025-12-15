@@ -3,21 +3,23 @@ package com.provideoplayer
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.provideoplayer.databinding.ActivityNetworkStreamBinding
+import org.json.JSONArray
 
 class NetworkStreamActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityNetworkStreamBinding
-    
-    // Sample streaming URLs for quick access
-    private val sampleUrls = listOf(
-        "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4" to "Big Buck Bunny (Sample)",
-        "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" to "Mux Test Stream (HLS)",
-        "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8" to "Sintel (HLS)"
-    )
+    private val streamHistory = mutableListOf<String>()
+    private lateinit var historyAdapter: StreamHistoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +28,7 @@ class NetworkStreamActivity : AppCompatActivity() {
         
         setupToolbar()
         setupUI()
+        loadStreamHistory()
     }
 
     private fun setupToolbar() {
@@ -40,10 +43,24 @@ class NetworkStreamActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        // Setup history RecyclerView
+        historyAdapter = StreamHistoryAdapter(
+            streamHistory,
+            onItemClick = { url -> 
+                binding.urlInput.setText(url)
+            },
+            onDeleteClick = { url ->
+                removeFromHistory(url)
+            }
+        )
+        binding.historyRecyclerView.layoutManager = LinearLayoutManager(this)
+        binding.historyRecyclerView.adapter = historyAdapter
+        
         // Play button
         binding.btnPlay.setOnClickListener {
             val url = binding.urlInput.text.toString().trim()
             if (url.isNotEmpty()) {
+                saveToStreamHistory(url)
                 playNetworkStream(url, "Network Stream")
             } else {
                 Toast.makeText(this, "Please enter a URL", Toast.LENGTH_SHORT).show()
@@ -65,11 +82,6 @@ class NetworkStreamActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
             }
-        }
-        
-        // Sample streams button
-        binding.btnSampleStreams.setOnClickListener {
-            showSampleStreamsDialog()
         }
         
         // Protocol chips
@@ -101,18 +113,89 @@ class NetworkStreamActivity : AppCompatActivity() {
             }
         }
     }
-
-    private fun showSampleStreamsDialog() {
-        val names = sampleUrls.map { it.second }.toTypedArray()
+    
+    private fun loadStreamHistory() {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("stream_history", "[]") ?: "[]"
         
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Sample Streams")
-            .setItems(names) { dialog, which ->
-                val (url, name) = sampleUrls[which]
-                binding.urlInput.setText(url)
-                dialog.dismiss()
+        try {
+            val jsonArray = JSONArray(historyJson)
+            streamHistory.clear()
+            for (i in 0 until jsonArray.length()) {
+                streamHistory.add(jsonArray.getString(i))
             }
-            .show()
+            // Show most recent first
+            streamHistory.reverse()
+            updateHistoryVisibility()
+            historyAdapter.notifyDataSetChanged()
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+    
+    private fun saveToStreamHistory(url: String) {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("stream_history", "[]") ?: "[]"
+        
+        val historyArray = try {
+            JSONArray(historyJson)
+        } catch (e: Exception) {
+            JSONArray()
+        }
+        
+        // Remove if already exists
+        val newArray = JSONArray()
+        for (i in 0 until historyArray.length()) {
+            val existingUrl = historyArray.getString(i)
+            if (existingUrl != url) {
+                newArray.put(existingUrl)
+            }
+        }
+        
+        // Add to end
+        newArray.put(url)
+        
+        // Keep only last 10
+        val finalArray = JSONArray()
+        val startIndex = if (newArray.length() > 10) newArray.length() - 10 else 0
+        for (i in startIndex until newArray.length()) {
+            finalArray.put(newArray.getString(i))
+        }
+        
+        prefs.edit().putString("stream_history", finalArray.toString()).apply()
+        loadStreamHistory()
+    }
+    
+    private fun removeFromHistory(url: String) {
+        val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
+        val historyJson = prefs.getString("stream_history", "[]") ?: "[]"
+        
+        val historyArray = try {
+            JSONArray(historyJson)
+        } catch (e: Exception) {
+            JSONArray()
+        }
+        
+        val newArray = JSONArray()
+        for (i in 0 until historyArray.length()) {
+            val existingUrl = historyArray.getString(i)
+            if (existingUrl != url) {
+                newArray.put(existingUrl)
+            }
+        }
+        
+        prefs.edit().putString("stream_history", newArray.toString()).apply()
+        loadStreamHistory()
+    }
+    
+    private fun updateHistoryVisibility() {
+        if (streamHistory.isEmpty()) {
+            binding.historyTitle.visibility = View.GONE
+            binding.historyRecyclerView.visibility = View.GONE
+        } else {
+            binding.historyTitle.visibility = View.VISIBLE
+            binding.historyRecyclerView.visibility = View.VISIBLE
+        }
     }
 
     private fun playNetworkStream(url: String, title: String) {
@@ -140,5 +223,33 @@ class NetworkStreamActivity : AppCompatActivity() {
         } catch (e: Exception) {
             false
         }
+    }
+    
+    // Stream History Adapter
+    inner class StreamHistoryAdapter(
+        private val items: List<String>,
+        private val onItemClick: (String) -> Unit,
+        private val onDeleteClick: (String) -> Unit
+    ) : RecyclerView.Adapter<StreamHistoryAdapter.ViewHolder>() {
+        
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val urlText: TextView = itemView.findViewById(R.id.streamUrl)
+            val deleteBtn: ImageView = itemView.findViewById(R.id.btnDelete)
+        }
+        
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_stream_history, parent, false)
+            return ViewHolder(view)
+        }
+        
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val url = items[position]
+            holder.urlText.text = url
+            holder.itemView.setOnClickListener { onItemClick(url) }
+            holder.deleteBtn.setOnClickListener { onDeleteClick(url) }
+        }
+        
+        override fun getItemCount() = items.size
     }
 }
