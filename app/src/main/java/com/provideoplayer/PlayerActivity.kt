@@ -1470,14 +1470,22 @@ class PlayerActivity : AppCompatActivity() {
         binding.gestureIndicator.visibility = View.GONE
     }
 
+    // Runnable for hiding seek indicator
+    private val hideSeekIndicatorRunnable = Runnable {
+        binding.seekIndicator.visibility = View.GONE
+    }
+    
     private fun showSeekIndicator(seconds: Int) {
+        // Cancel any pending hide
+        binding.seekIndicator.removeCallbacks(hideSeekIndicatorRunnable)
+        
         binding.seekIndicator.visibility = View.VISIBLE
         binding.seekIndicator.text = "${if (seconds > 0) "+" else ""}$seconds sec"
         
-        hideHandler.postDelayed({
-            binding.seekIndicator.visibility = View.GONE
-        }, 800)
+        // Schedule hide after 800ms
+        binding.seekIndicator.postDelayed(hideSeekIndicatorRunnable, 800)
     }
+
 
     private fun showSettingsMenu() {
         val dialog = BottomSheetDialog(this)
