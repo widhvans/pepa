@@ -2029,139 +2029,156 @@ class PlayerActivity : AppCompatActivity() {
     
     // Audio track onboarding - shows tooltip when multiple audio tracks detected
     private fun showAudioTrackOnboardingIfNeeded() {
-        // Show tooltip pointing to audio track button
-        showControls()  // Make sure controls are visible
+        // Show controls and KEEP them visible during tooltip
+        showControls()
+        hideHandler.removeCallbacksAndMessages(null)  // Cancel auto-hide
         
-        // Wait for button to be laid out properly
+        // Wait for layout to complete
         binding.btnAudioTrack.post {
             try {
-                // Get button location on screen
+                // Get button location in window (not screen, to avoid status bar offset issues)
                 val location = IntArray(2)
-                binding.btnAudioTrack.getLocationOnScreen(location)
+                binding.btnAudioTrack.getLocationInWindow(location)
                 val btnX = location[0]
                 val btnY = location[1]
                 val btnWidth = binding.btnAudioTrack.width
                 val btnHeight = binding.btnAudioTrack.height
+                val btnCenterX = btnX + btnWidth / 2
                 
-                android.util.Log.d("AudioTooltip", "Button at: x=$btnX, y=$btnY, w=$btnWidth, h=$btnHeight")
+                android.util.Log.d("AudioTooltip", "btnAudioTrack at: x=$btnX, y=$btnY, w=$btnWidth, h=$btnHeight, centerX=$btnCenterX")
                 
-                // Create overlay for tooltip
+                // Create transparent overlay (doesn't block controls)
                 val overlay = android.widget.FrameLayout(this).apply {
                     layoutParams = android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT
                     )
+                    isClickable = false  // Don't block touches to controls
                 }
                 
-                // Main tooltip container (vertical layout)
+                // Tooltip container positioned exactly below button
                 val tooltipContainer = android.widget.LinearLayout(this).apply {
                     orientation = android.widget.LinearLayout.VERTICAL
                     gravity = android.view.Gravity.CENTER_HORIZONTAL
                     
-                    // Position below the button
                     val containerParams = android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
                         android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
                     ).apply {
-                        leftMargin = btnX - 40
-                        topMargin = btnY + btnHeight + 8
+                        // Center the tooltip under the button
+                        leftMargin = (btnCenterX - 120).coerceAtLeast(16)
+                        topMargin = btnY + btnHeight  // Directly touching the button
                     }
                     layoutParams = containerParams
                 }
                 
-                // Arrow pointing UP to button
+                // Arrow pointing up - touching the button
                 val arrowView = android.widget.TextView(this).apply {
                     text = "▲"
                     setTextColor(android.graphics.Color.parseColor("#4CAF50"))
-                    textSize = 24f
+                    textSize = 18f
                     gravity = android.view.Gravity.CENTER
                     includeFontPadding = false
                     setPadding(0, 0, 0, 0)
+                    // Negative margin to touch the button
+                    val arrowParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        topMargin = -4  // Move arrow up to touch button
+                    }
+                    layoutParams = arrowParams
                 }
                 
                 // Instruction box
                 val instructionBox = android.widget.LinearLayout(this).apply {
                     orientation = android.widget.LinearLayout.HORIZONTAL
-                    setPadding(40, 24, 40, 24)
+                    setPadding(32, 20, 32, 20)
                     gravity = android.view.Gravity.CENTER_VERTICAL
                     
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(android.graphics.Color.parseColor("#F5111111"))
-                        cornerRadius = 24f
-                        setStroke(3, android.graphics.Color.parseColor("#4CAF50"))
+                        setColor(android.graphics.Color.parseColor("#F0101010"))
+                        cornerRadius = 20f
+                        setStroke(2, android.graphics.Color.parseColor("#4CAF50"))
                     }
                 }
                 
-                // Icon in instruction box
+                // Icon
                 val icon = android.widget.ImageView(this).apply {
                     setImageResource(R.drawable.ic_audio_track)
                     setColorFilter(android.graphics.Color.parseColor("#4CAF50"))
-                    val iconParams = android.widget.LinearLayout.LayoutParams(48, 48)
-                    iconParams.marginEnd = 16
+                    val iconParams = android.widget.LinearLayout.LayoutParams(44, 44)
+                    iconParams.marginEnd = 14
                     layoutParams = iconParams
                 }
                 
-                // Text in instruction box
+                // Text
                 val text = android.widget.TextView(this).apply {
-                    this.text = "Multiple Audio Tracks\nTap here to switch"
+                    this.text = "Multiple Audio Tracks\nTap to switch"
                     setTextColor(android.graphics.Color.WHITE)
-                    textSize = 14f
-                    setLineSpacing(4f, 1f)
+                    textSize = 13f
+                    setLineSpacing(3f, 1f)
                 }
                 
-                // Build the layout
+                // Build layout
                 instructionBox.addView(icon)
                 instructionBox.addView(text)
                 tooltipContainer.addView(arrowView)
                 tooltipContainer.addView(instructionBox)
                 overlay.addView(tooltipContainer)
                 
-                // Add overlay to window
-                val decorView = window.decorView as android.view.ViewGroup
-                decorView.addView(overlay)
+                // Add to binding root (not decorView, to stay within player layout)
+                val rootView = binding.root as android.view.ViewGroup
+                rootView.addView(overlay)
                 
-                // Start with invisible state
+                // Start invisible
                 tooltipContainer.alpha = 0f
-                tooltipContainer.translationY = -50f
+                tooltipContainer.translationY = -30f
                 
-                // Animate in (slide down from button)
+                // Animate in
                 tooltipContainer.animate()
                     .alpha(1f)
                     .translationY(0f)
-                    .setDuration(350)
-                    .setStartDelay(200)
-                    .setInterpolator(android.view.animation.OvershootInterpolator(0.8f))
+                    .setDuration(280)
+                    .setStartDelay(100)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
                     .start()
                 
-                // Click to dismiss
-                overlay.setOnClickListener {
+                // Click on tooltip to dismiss
+                tooltipContainer.setOnClickListener {
                     tooltipContainer.animate()
                         .alpha(0f)
-                        .translationY(-40f)
-                        .setDuration(200)
-                        .withEndAction { decorView.removeView(overlay) }
+                        .translationY(-25f)
+                        .setDuration(180)
+                        .withEndAction { 
+                            try { rootView.removeView(overlay) } catch (e: Exception) {}
+                            scheduleHideControls()  // Resume auto-hide
+                        }
                         .start()
                 }
                 
-                // Auto dismiss after 5 seconds
+                // Auto dismiss after 4.5 seconds
                 overlay.postDelayed({
                     if (overlay.parent != null) {
                         tooltipContainer.animate()
                             .alpha(0f)
-                            .translationY(-50f)
-                            .setDuration(250)
+                            .translationY(-25f)
+                            .setDuration(200)
                             .withEndAction { 
-                                try { decorView.removeView(overlay) } catch (e: Exception) {}
+                                try { rootView.removeView(overlay) } catch (e: Exception) {}
+                                scheduleHideControls()  // Resume auto-hide
                             }
                             .start()
                     }
-                }, 5000)
+                }, 4500)
                 
             } catch (e: Exception) {
                 android.util.Log.e("PlayerActivity", "Failed to show audio tooltip", e)
+                scheduleHideControls()  // Resume auto-hide on error
             }
         }
     }
+
 
 
 
