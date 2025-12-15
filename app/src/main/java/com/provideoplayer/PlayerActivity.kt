@@ -2064,8 +2064,11 @@ class PlayerActivity : AppCompatActivity() {
         progressHandler.removeCallbacksAndMessages(null) // Clean up progress handler too
         cdAnimator?.cancel() // Clean up CD animation
         cdAnimator = null
+        // Stop playback completely before releasing
+        player?.stop()
         player?.release()
         player = null
+        android.util.Log.d("PlayerActivity", "onDestroy: Player stopped and released")
     }
 
     @Deprecated("Deprecated in Java")
