@@ -74,6 +74,18 @@ class PlayerActivity : AppCompatActivity() {
         
         private const val SEEK_INCREMENT = 10000L // 10 seconds
         private const val HIDE_CONTROLS_DELAY = 4000L
+        
+        // Track current instance to close old PiP when new video starts
+        private var currentInstance: PlayerActivity? = null
+        
+        fun finishExistingInstance() {
+            currentInstance?.let { oldInstance ->
+                android.util.Log.d("PlayerActivity", "Finishing existing instance (PiP cleanup)")
+                oldInstance.player?.stop()
+                oldInstance.finish()
+            }
+            currentInstance = null
+        }
     }
 
     private lateinit var binding: ActivityPlayerBinding
@@ -148,7 +160,9 @@ class PlayerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Fullscreen immersive
+        // Close any existing PlayerActivity (including PiP) before starting new one
+        finishExistingInstance()
+        currentInstance = this
         WindowCompat.setDecorFitsSystemWindows(window, false)
         
         binding = ActivityPlayerBinding.inflate(layoutInflater)
@@ -2068,6 +2082,10 @@ class PlayerActivity : AppCompatActivity() {
         player?.stop()
         player?.release()
         player = null
+        // Clear static reference
+        if (currentInstance == this) {
+            currentInstance = null
+        }
         android.util.Log.d("PlayerActivity", "onDestroy: Player stopped and released")
     }
 
