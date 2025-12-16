@@ -801,6 +801,56 @@ class BrowseFragment : Fragment() {
         }
     }
     
+    fun filterBySearch(query: String) {
+        if (!isAdded || _binding == null) return
+        
+        // Only filter when inside a folder (showing videos)
+        if (!isShowingFolders && ::videoAdapter.isInitialized) {
+            val filtered = if (query.isEmpty()) {
+                currentFolderMedia
+            } else {
+                currentFolderMedia.filter { video ->
+                    video.title.contains(query, ignoreCase = true)
+                }
+            }
+            
+            videoAdapter.submitList(filtered)
+            
+            if (filtered.isEmpty()) {
+                binding.emptyView.visibility = View.VISIBLE
+                binding.emptyText.text = if (query.isEmpty()) "No files found" else "No results for \"$query\""
+            } else {
+                binding.emptyView.visibility = View.GONE
+            }
+        }
+    }
+    
+    fun sortBy(sortType: Int) {
+        if (!isAdded || _binding == null) return
+        
+        // Only sort when inside a folder (showing videos)
+        if (!isShowingFolders && ::videoAdapter.isInitialized) {
+            val currentList = videoAdapter.currentList.toMutableList()
+            val sorted = when (sortType) {
+                0 -> currentList.sortedBy { it.title.lowercase() }  // Name
+                1 -> currentList.sortedByDescending { it.dateAdded }  // Date
+                2 -> currentList.sortedByDescending { it.size }  // Size
+                3 -> currentList.sortedByDescending { it.duration }  // Duration
+                else -> currentList
+            }
+            
+            // Apply smooth animation
+            val layoutAnimation = android.view.animation.AnimationUtils.loadLayoutAnimation(
+                requireContext(), R.anim.layout_animation
+            )
+            binding.recyclerView.layoutAnimation = layoutAnimation
+            
+            videoAdapter.submitList(sorted) {
+                binding.recyclerView.scheduleLayoutAnimation()
+            }
+        }
+    }
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

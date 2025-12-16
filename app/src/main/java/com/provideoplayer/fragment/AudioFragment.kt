@@ -515,6 +515,10 @@ class AudioFragment : Fragment() {
         }
     }
     
+    fun getAudioCount(): Int {
+        return videoAdapter.currentList.size
+    }
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

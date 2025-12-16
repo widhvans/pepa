@@ -101,9 +101,23 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                     else -> getString(R.string.app_name)
                 }
                 
-                // Clear subtitle when switching tabs
-                if (position != 2) {  // Browse tab manages its own subtitle
-                    supportActionBar?.subtitle = null
+                // Restore subtitle based on tab (show file counts)
+                when (position) {
+                    0 -> pagerAdapter.getVideosFragment()?.let { frag ->
+                        val count = frag.getVideoCount()
+                        supportActionBar?.subtitle = if (count > 0) "$count videos" else null
+                    }
+                    1 -> pagerAdapter.getAudioFragment()?.let { frag ->
+                        val count = frag.getAudioCount()
+                        supportActionBar?.subtitle = if (count > 0) "$count audio files" else null
+                    }
+                    2 -> {
+                        // Browse tab manages its own subtitle
+                    }
+                    else -> supportActionBar?.subtitle = null
+                }
+                
+                if (position != 2) {
                     supportActionBar?.setDisplayHomeAsUpEnabled(false)
                 }
             }
@@ -179,6 +193,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
         when (fragment) {
             is com.provideoplayer.fragment.VideosFragment -> fragment.filterBySearch(query)
             is com.provideoplayer.fragment.AudioFragment -> fragment.filterBySearch(query)
+            is com.provideoplayer.fragment.BrowseFragment -> fragment.filterBySearch(query)
         }
     }
     
@@ -187,6 +202,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
         when (fragment) {
             is com.provideoplayer.fragment.VideosFragment -> fragment.sortBy(sortType)
             is com.provideoplayer.fragment.AudioFragment -> fragment.sortBy(sortType)
+            is com.provideoplayer.fragment.BrowseFragment -> fragment.sortBy(sortType)
         }
     }
 

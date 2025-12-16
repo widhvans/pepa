@@ -506,6 +506,10 @@ class VideosFragment : Fragment() {
         }
     }
     
+    fun getVideoCount(): Int {
+        return videoAdapter.currentList.size
+    }
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
