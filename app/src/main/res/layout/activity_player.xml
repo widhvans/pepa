@@ -349,16 +349,17 @@
 
     </LinearLayout>
 
-    <!-- YouTube-style Seek Preview -->
+    <!-- YouTube-style Seek Preview - positioned above progress bar -->
     <LinearLayout
         android:id="@+id/seekPreviewContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="120dp"
         android:background="@drawable/bg_gesture_indicator"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="12dp"
+        android:padding="10dp"
         android:visibility="gone">
 
         <!-- Preview Thumbnail -->

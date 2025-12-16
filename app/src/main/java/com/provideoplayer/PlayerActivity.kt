@@ -1573,9 +1573,17 @@ class PlayerActivity : AppCompatActivity() {
             // Update time display
             binding.seekPreviewTime.text = "${formatTime(targetPos)} / ${formatTime(duration)}"
             
+            // Position preview above progress bar thumb
+            val progress = targetPos.toFloat() / duration.toFloat()
+            val previewWidth = binding.seekPreviewContainer.width.takeIf { it > 0 } ?: 180
+            val screenPadding = 16
+            val maxTranslation = (screenWidth / 2) - (previewWidth / 2) - screenPadding
+            val translationX = (progress - 0.5f) * 2 * maxTranslation
+            binding.seekPreviewContainer.translationX = translationX
+            
             // Load thumbnail (throttled to avoid lag)
             val now = System.currentTimeMillis()
-            if (now - lastThumbnailUpdateTime > 100) {  // Update thumbnail every 100ms max
+            if (now - lastThumbnailUpdateTime > 150) {  // Update thumbnail every 150ms
                 lastThumbnailUpdateTime = now
                 loadSeekThumbnail(targetPos)
             }
