@@ -101,18 +101,20 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                     else -> getString(R.string.app_name)
                 }
                 
-                // Restore subtitle based on tab (show file counts)
+                // Restore title with count on tab switch
                 when (position) {
                     0 -> pagerAdapter.getVideosFragment()?.let { frag ->
                         val count = frag.getVideoCount()
-                        supportActionBar?.subtitle = if (count > 0) "$count videos" else null
+                        supportActionBar?.title = "Videos ($count)"
+                        supportActionBar?.subtitle = null
                     }
                     1 -> pagerAdapter.getAudioFragment()?.let { frag ->
                         val count = frag.getAudioCount()
-                        supportActionBar?.subtitle = if (count > 0) "$count music" else null
+                        supportActionBar?.title = "Music ($count)"
+                        supportActionBar?.subtitle = null
                     }
                     2 -> {
-                        // Browse tab manages its own subtitle
+                        // Browse tab manages its own title
                     }
                     else -> supportActionBar?.subtitle = null
                 }

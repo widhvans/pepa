@@ -292,8 +292,9 @@ class VideosFragment : Fragment() {
                     !it.path.endsWith(".flac", true)
                 }
                 
-                // Update toolbar subtitle via activity
-                (activity as? TabHost)?.updateSubtitle("${videoFiles.size} videos")
+                // Update toolbar title with count
+                (activity as? TabHost)?.updateTitle("Videos (${videoFiles.size})")
+                (activity as? TabHost)?.updateSubtitle(null)
                 
                 if (videoFiles.isEmpty()) {
                     binding.recyclerView.visibility = View.GONE
