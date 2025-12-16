@@ -7,16 +7,16 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="8dp"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
     android:background="?attr/selectableItemBackground">
 
-    <!-- Small Thumbnail -->
+    <!-- Larger Thumbnail -->
     <androidx.cardview.widget.CardView
-        android:layout_width="56dp"
-        android:layout_height="42dp"
-        app:cardCornerRadius="4dp"
-        app:cardElevation="0dp">
+        android:layout_width="72dp"
+        android:layout_height="54dp"
+        app:cardCornerRadius="6dp"
+        app:cardElevation="2dp">
 
         <ImageView
             android:id="@+id/videoThumbnail"
@@ -44,7 +44,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/text_primary"
-            android:textSize="14sp"
+            android:textSize="15sp"
             tools:text="Video Title Here" />
 
         <LinearLayout
@@ -58,7 +58,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 tools:text="05:30" />
 
             <TextView
@@ -67,14 +67,14 @@
                 android:layout_marginHorizontal="6dp"
                 android:text="•"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/videoSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 tools:text="25.5 MB" />
 
         </LinearLayout>

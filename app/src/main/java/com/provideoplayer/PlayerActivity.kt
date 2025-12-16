@@ -1562,37 +1562,11 @@ class PlayerActivity : AppCompatActivity() {
             // Calculate target position
             val targetPos = (seekStartPosition + seekAccumulator).coerceIn(0, duration)
             
-            // Show seek preview container
-            binding.seekPreviewContainer.visibility = View.VISIBLE
-            
-            // Update seek delta text
-            val seekSecs = seekAccumulator / 1000
-            val sign = if (seekAccumulator >= 0) "+" else ""
-            binding.seekIndicator.text = "${sign}${seekSecs}s"
-            
-            // Update time display
-            binding.seekPreviewTime.text = "${formatTime(targetPos)} / ${formatTime(duration)}"
-            
-            // Update duration bar and current time to follow seek
+            // Update duration bar and current time - 0 latency
             binding.seekBar.progress = ((targetPos.toFloat() / duration.toFloat()) * 1000).toInt()
             binding.currentTime.text = formatTime(targetPos)
             
-            // Position preview above progress bar thumb
-            val progress = targetPos.toFloat() / duration.toFloat()
-            val previewWidth = binding.seekPreviewContainer.width.takeIf { it > 0 } ?: 180
-            val screenPadding = 16
-            val maxTranslation = (screenWidth / 2) - (previewWidth / 2) - screenPadding
-            val translationX = (progress - 0.5f) * 2 * maxTranslation
-            binding.seekPreviewContainer.translationX = translationX
-            
-            // Load thumbnail (throttled to avoid lag)
-            val now = System.currentTimeMillis()
-            if (now - lastThumbnailUpdateTime > 150) {  // Update thumbnail every 150ms
-                lastThumbnailUpdateTime = now
-                loadSeekThumbnail(targetPos)
-            }
-            
-            // Apply seek immediately for smooth preview
+            // Apply seek immediately - video follows finger with 0 latency
             p.seekTo(targetPos)
         }
     }
