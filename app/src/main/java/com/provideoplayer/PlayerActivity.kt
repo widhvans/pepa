@@ -1045,7 +1045,7 @@ class PlayerActivity : AppCompatActivity() {
                 
                 // Use distanceY for actual adjustment (per-frame, immediate response)
                 // Swipe UP = increase, Swipe DOWN = decrease (distanceY positive when moving up)
-                val frameDelta = -distanceY / screenHeight
+                val frameDelta = distanceY / screenHeight
                 
                 when (gestureType) {
                     GestureType.BRIGHTNESS -> {
