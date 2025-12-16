@@ -46,10 +46,15 @@ class VideosFragment : Fragment() {
     private fun setupRecyclerView() {
         videoAdapter = VideoAdapter(
             onVideoClick = { video, position ->
-                openPlayer(video, position)
+                // If in selection mode, toggle selection, otherwise play
+                if (videoAdapter.selectedItems.isNotEmpty()) {
+                    toggleSelection(video)
+                } else {
+                    openPlayer(video, position)
+                }
             },
             onVideoLongClick = { video ->
-                // Long press to select file
+                // Long press to start/toggle selection
                 toggleSelection(video)
                 true
             },
@@ -63,6 +68,85 @@ class VideosFragment : Fragment() {
             setHasFixedSize(true)
         }
         applyLayoutPreference()
+        setupSelectionBar()
+    }
+    
+    private fun setupSelectionBar() {
+        binding.btnClearSelection.setOnClickListener {
+            videoAdapter.clearSelection()
+            updateSelectionBar()
+        }
+        
+        binding.btnShareSelected.setOnClickListener {
+            shareSelectedVideos()
+        }
+        
+        binding.btnDeleteSelected.setOnClickListener {
+            deleteSelectedVideos()
+        }
+    }
+    
+    private fun updateSelectionBar() {
+        val count = videoAdapter.selectedItems.size
+        if (count > 0) {
+            binding.selectionBar.visibility = View.VISIBLE
+            binding.selectionCount.text = "$count selected"
+        } else {
+            binding.selectionBar.visibility = View.GONE
+        }
+    }
+    
+    private fun shareSelectedVideos() {
+        val selected = videoAdapter.selectedItems.toList()
+        if (selected.isEmpty()) return
+        
+        try {
+            val uris = selected.map { video ->
+                androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    java.io.File(video.path)
+                )
+            }
+            
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "video/*"
+                putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, ArrayList(uris))
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(android.content.Intent.createChooser(intent, "Share ${selected.size} files"))
+            
+            videoAdapter.clearSelection()
+            updateSelectionBar()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error sharing files", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun deleteSelectedVideos() {
+        val selected = videoAdapter.selectedItems.toList()
+        if (selected.isEmpty()) return
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete ${selected.size} files?")
+            .setMessage("This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                var deleted = 0
+                selected.forEach { video ->
+                    try {
+                        val file = java.io.File(video.path)
+                        if (file.exists() && file.delete()) {
+                            deleted++
+                        }
+                    } catch (e: Exception) { }
+                }
+                Toast.makeText(requireContext(), "$deleted files deleted", Toast.LENGTH_SHORT).show()
+                videoAdapter.clearSelection()
+                updateSelectionBar()
+                loadVideos()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
     
     private fun showVideoMenu(video: VideoItem, anchorView: View) {
@@ -103,12 +187,7 @@ class VideosFragment : Fragment() {
     
     private fun toggleSelection(video: VideoItem) {
         videoAdapter.toggleSelection(video)
-        val count = videoAdapter.selectedItems.size
-        if (count > 0) {
-            Toast.makeText(requireContext(), "$count item(s) selected", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(requireContext(), "Selection cleared", Toast.LENGTH_SHORT).show()
-        }
+        updateSelectionBar()
     }
     
     private fun openPlayerInPiP(video: VideoItem) {

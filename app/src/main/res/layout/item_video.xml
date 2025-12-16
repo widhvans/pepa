@@ -37,7 +37,7 @@
                 android:layout_margin="4dp"
                 android:src="@drawable/ic_check_circle"
                 android:visibility="gone"
-                app:tint="#4CAF50" />
+                app:tint="#9C27B0" />
 
             <!-- NEW Tag Badge -->
             <TextView

@@ -61,4 +61,57 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
+    <!-- Selection Action Bar -->
+    <LinearLayout
+        android:id="@+id/selectionBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:background="#9C27B0"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:visibility="gone"
+        android:elevation="8dp">
+
+        <ImageView
+            android:id="@+id/btnClearSelection"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_close"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/selectionCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="0 selected"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnShareSelected"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_send"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/white" />
+
+        <ImageView
+            android:id="@+id/btnDeleteSelected"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_delete"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/white" />
+
+    </LinearLayout>
+
 </FrameLayout>
