@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                 // Update toolbar title
                 supportActionBar?.title = when (position) {
                     0 -> "Videos"
-                    1 -> "Audio"
+                    1 -> "Music"
                     2 -> "Browse"
                     3 -> "Playlist"
                     4 -> "Stream"
