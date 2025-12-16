@@ -14,7 +14,7 @@
         android:layout_width="80dp"
         android:layout_height="45dp"
         android:scaleType="centerCrop"
-        android:background="@color/gray_800"
+        android:background="@color/surface_dark_elevated"
         app:shapeAppearanceOverlay="@style/RoundedCornerSmall" />
 
     <!-- Video Info -->
