@@ -69,11 +69,20 @@ class BrowseFragment : Fragment() {
     private fun setupRecyclerView() {
         videoAdapter = VideoAdapter(
             onVideoClick = { video, position ->
-                openPlayer(video, position)
+                // If in selection mode, toggle selection, otherwise play
+                if (videoAdapter.selectedItems.isNotEmpty()) {
+                    toggleSelection(video)
+                } else {
+                    openPlayer(video, position)
+                }
             },
             onVideoLongClick = { video ->
-                showMediaInfo(video)
+                // Long press to start/toggle selection
+                toggleSelection(video)
                 true
+            },
+            onMenuClick = { video, view ->
+                showMediaMenu(video, view)
             }
         )
         
@@ -84,6 +93,96 @@ class BrowseFragment : Fragment() {
         binding.recyclerView.apply {
             setHasFixedSize(true)
             itemAnimator = null
+        }
+    }
+    
+    private fun toggleSelection(video: VideoItem) {
+        videoAdapter.toggleSelection(video)
+        // TODO: Add selection bar to browse fragment layout
+    }
+    
+    private fun showMediaMenu(video: VideoItem, anchorView: View) {
+        val popup = android.widget.PopupMenu(requireContext(), anchorView)
+        popup.menuInflater.inflate(R.menu.menu_video_item, popup.menu)
+        
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_play -> {
+                    openPlayer(video, 0)
+                    true
+                }
+                R.id.action_pip -> {
+                    openPlayerInPiP(video)
+                    true
+                }
+                R.id.action_select -> {
+                    toggleSelection(video)
+                    true
+                }
+                R.id.action_info -> {
+                    showMediaInfo(video)
+                    true
+                }
+                R.id.action_delete -> {
+                    deleteMedia(video)
+                    true
+                }
+                R.id.action_send -> {
+                    shareMedia(video)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+    
+    private fun openPlayerInPiP(video: VideoItem) {
+        val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(PlayerActivity.EXTRA_VIDEO_URI, video.uri.toString())
+            putExtra(PlayerActivity.EXTRA_VIDEO_TITLE, video.title)
+            putExtra("START_IN_PIP", true)
+        }
+        startActivity(intent)
+    }
+    
+    private fun deleteMedia(video: VideoItem) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete File")
+            .setMessage("Are you sure you want to delete '${video.title}'?")
+            .setPositiveButton("Delete") { _, _ ->
+                try {
+                    val file = java.io.File(video.path)
+                    if (file.exists() && file.delete()) {
+                        android.widget.Toast.makeText(requireContext(), "Deleted successfully", android.widget.Toast.LENGTH_SHORT).show()
+                        loadData()
+                    } else {
+                        android.widget.Toast.makeText(requireContext(), "Failed to delete", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(requireContext(), "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun shareMedia(video: VideoItem) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                java.io.File(video.path)
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = if (isAudioFile(video)) "audio/*" else "video/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Share"))
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(requireContext(), "Error sharing: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
     
