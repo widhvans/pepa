@@ -1400,11 +1400,17 @@ class PlayerActivity : AppCompatActivity() {
             val isPlaying = p.isPlaying
             val duration = p.duration
             val position = p.currentPosition
+            val playbackState = p.playbackState
             
             // Show restart icon if:
             // 1. videoHasEnded flag is true (from STATE_ENDED), OR
-            // 2. position is at or very near end (within 1.5 seconds of duration)
-            val isAtEnd = videoHasEnded || (duration > 0 && position >= duration - 1500)
+            // 2. playbackState is STATE_ENDED, OR
+            // 3. position is at or very near end (within 1.5 seconds of duration) and not playing
+            val isAtEnd = videoHasEnded || 
+                          playbackState == Player.STATE_ENDED ||
+                          (duration > 0 && position >= duration - 1500 && !isPlaying)
+            
+            android.util.Log.d("PlayerActivity", "updatePlayPauseButton: isPlaying=$isPlaying, duration=$duration, position=$position, isAtEnd=$isAtEnd, videoHasEnded=$videoHasEnded, playbackState=$playbackState")
             
             val iconRes = when {
                 isAtEnd && !isPlaying -> R.drawable.ic_restart  // Show restart icon when at end
