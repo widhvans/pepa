@@ -1967,6 +1967,7 @@ class PlayerActivity : AppCompatActivity() {
             // Entering PiP
             wasInPipMode = true
             isPipMode = true
+            addLog("PiP: Entering PiP mode")
             // Hide all UI in PiP
             binding.controlsContainer.visibility = View.GONE
             binding.topBar.visibility = View.GONE
@@ -1975,14 +1976,19 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             // Exiting PiP mode
             isPipMode = false
+            addLog("PiP: Exiting PiP mode - isFinishing: $isFinishing")
             
-            if (isFinishing) {
-                // User closed PiP by swiping away - stop player
+            // Check multiple conditions to determine if PiP was dismissed (not expanded)
+            // When user swipes away PiP, sometimes isFinishing is false but activity is being destroyed
+            val isPipClosedByUser = isFinishing || !hasWindowFocus() || isDestroyed
+            
+            if (isPipClosedByUser) {
+                // User closed PiP by swiping away - stop player IMMEDIATELY
                 wasInPipMode = false
+                addLog("PiP: Closed by user - stopping player")
+                player?.pause()
                 player?.stop()
-                player?.release()
-                player = null
-                android.util.Log.d("PlayerActivity", "PiP closed by user swipe - player stopped")
+                finish()  // Finish the activity
             } else {
                 // User tapped PiP to return to full screen - restore UI
                 wasInPipMode = false
@@ -1991,7 +1997,7 @@ class PlayerActivity : AppCompatActivity() {
                 binding.topBar.visibility = View.VISIBLE
                 binding.bottomBar.visibility = View.VISIBLE
                 showControls()
-                android.util.Log.d("PlayerActivity", "PiP expanded to full screen")
+                addLog("PiP: Expanded to full screen")
             }
         }
     }
