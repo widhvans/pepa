@@ -655,33 +655,7 @@ class PlayerActivity : AppCompatActivity() {
             else -> MimeTypes.VIDEO_UNKNOWN
         }
     }
-    
-    /**
-     * Show detailed error dialog with copy button for debugging
-     */
-    private fun showErrorDialog(errorDetails: String) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("❌ Video Playback Error")
-            .setMessage(errorDetails)
-            .setPositiveButton("📋 Copy Error") { dialog, _ ->
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("Video Player Error", errorDetails)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(this, "Error copied to clipboard!", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNegativeButton("Close") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .setNeutralButton("Retry") { dialog, _ ->
-                dialog.dismiss()
-                // Retry playback
-                player?.prepare()
-                player?.playWhenReady = true
-            }
-            .setCancelable(false)
-            .show()
-    }
+    // Error dialog removed for Play Store release - using simple Toast instead
     
     /**
      * Retry playback using ProgressiveMediaSource - this forces direct progressive download
@@ -865,7 +839,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         
         override fun onPlayerError(error: PlaybackException) {
-            android.util.Log.e("PlayerActivity", "Player error: ${error.errorCodeName} - ${error.message}", error)
+            addLog("Player error: ${error.errorCodeName} - ${error.message}")
             binding.progressBar.visibility = View.GONE
             
             val currentUri = playlist.getOrNull(currentIndex) ?: ""
@@ -884,11 +858,11 @@ class PlayerActivity : AppCompatActivity() {
             // For network streams with parsing errors, try ProgressiveMediaSource once
             if (isNetworkStream && isParsingError && currentMimeTypeIndex == 0) {
                 currentMimeTypeIndex = 1  // Mark that we've tried progressive
-                android.util.Log.d("PlayerActivity", "Retrying with ProgressiveMediaSource (forced progressive download)")
+                addLog("Retrying with ProgressiveMediaSource")
                 
                 Toast.makeText(
                     this@PlayerActivity, 
-                    "Trying progressive download...", 
+                    "Trying another format...", 
                     Toast.LENGTH_SHORT
                 ).show()
                 
@@ -897,42 +871,17 @@ class PlayerActivity : AppCompatActivity() {
                 return
             }
             
-            // All retries failed or not a parsing error - show error dialog
-            val mimeType = if (currentUri.isNotEmpty()) getMimeType(currentUri) else "Unknown"
-            
-            val errorDetails = buildString {
-                appendLine("=== VIDEO PLAYER ERROR ===")
-                appendLine()
-                appendLine("Error Code: ${error.errorCodeName}")
-                appendLine("Error Message: ${error.message}")
-                appendLine()
-                if (isNetworkStream && isParsingError) {
-                    appendLine("=== STREAM FORMAT ISSUE ===")
-                    appendLine("The stream format could not be parsed.")
-                    appendLine("This usually happens when the server sends")
-                    appendLine("non-standard video data.")
-                    appendLine("Tried ${currentMimeTypeIndex + 1} different formats.")
-                    appendLine()
-                }
-                appendLine("=== VIDEO INFO ===")
-                appendLine("URI: $currentUri")
-                appendLine("MIME Type: $mimeType")
-                appendLine("Playlist Index: $currentIndex / ${playlist.size}")
-                appendLine()
-                appendLine("=== PLAYER STATE ===")
-                appendLine("Is Playing: ${player?.isPlaying}")
-                appendLine("Playback State: ${player?.playbackState}")
-                appendLine("Duration: ${player?.duration}")
-                appendLine()
-                appendLine("=== STACK TRACE ===")
-                appendLine(error.stackTraceToString())
-            }
-            
             // Reset retry counter for next playback
             currentMimeTypeIndex = 0
             
-            // Show error dialog with copy button
-            showErrorDialog(errorDetails)
+            // Show simple Toast for user
+            Toast.makeText(
+                this@PlayerActivity,
+                "Unable to play this video",
+                Toast.LENGTH_SHORT
+            ).show()
+            
+            addLog("Playback failed: ${error.errorCodeName}")
         }
         
         override fun onTracksChanged(tracks: Tracks) {
