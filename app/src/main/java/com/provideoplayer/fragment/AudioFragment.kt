@@ -329,7 +329,7 @@ class AudioFragment : Fragment() {
                 binding.swipeRefresh.isRefreshing = false
                 binding.progressBar.visibility = View.GONE
                 
-                (activity as? VideosFragment.TabHost)?.updateSubtitle("${allAudioFiles.size} audio files")
+                (activity as? VideosFragment.TabHost)?.updateSubtitle("${allAudioFiles.size} music")
                 
                 if (allAudioFiles.isEmpty()) {
                     binding.recyclerView.visibility = View.GONE

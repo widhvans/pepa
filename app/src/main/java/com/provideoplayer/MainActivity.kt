@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                     }
                     1 -> pagerAdapter.getAudioFragment()?.let { frag ->
                         val count = frag.getAudioCount()
-                        supportActionBar?.subtitle = if (count > 0) "$count songs" else null
+                        supportActionBar?.subtitle = if (count > 0) "$count music" else null
                     }
                     2 -> {
                         // Browse tab manages its own subtitle
@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                 }
                 R.id.nav_audio -> {
                     binding.viewPager.setCurrentItem(1, true)
-                    supportActionBar?.title = "Audio"
+                    supportActionBar?.title = "Music"
                     true
                 }
                 R.id.nav_browse -> {
