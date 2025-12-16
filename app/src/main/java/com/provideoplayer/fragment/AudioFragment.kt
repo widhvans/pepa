@@ -25,6 +25,7 @@ class AudioFragment : Fragment() {
     
     private lateinit var videoAdapter: VideoAdapter
     private var allAudioFiles: List<VideoItem> = emptyList()
+    private var currentFilter = "songs" // songs, albums, artists
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,7 +40,54 @@ class AudioFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupSwipeRefresh()
+        setupFilterChips()
         loadAudioFiles()
+    }
+    
+    private fun setupFilterChips() {
+        binding.chipSongs.setOnClickListener {
+            currentFilter = "songs"
+            applyFilter()
+        }
+        
+        binding.chipAlbums.setOnClickListener {
+            currentFilter = "albums"
+            applyFilter()
+        }
+        
+        binding.chipArtists.setOnClickListener {
+            currentFilter = "artists"
+            applyFilter()
+        }
+    }
+    
+    private fun applyFilter() {
+        if (allAudioFiles.isEmpty()) return
+        
+        val filteredList = when (currentFilter) {
+            "songs" -> allAudioFiles
+            "albums" -> {
+                // Group by folder (album)
+                allAudioFiles.distinctBy { it.folderName }.sortedBy { it.folderName }
+            }
+            "artists" -> {
+                // Group by parent folder (artist)
+                allAudioFiles.distinctBy { 
+                    it.path.substringBeforeLast("/").substringBeforeLast("/")
+                }.sortedBy { it.title }
+            }
+            else -> allAudioFiles
+        }
+        
+        videoAdapter.submitList(filteredList)
+        
+        val label = when (currentFilter) {
+            "songs" -> "${filteredList.size} songs"
+            "albums" -> "${filteredList.size} albums"
+            "artists" -> "${filteredList.size} artists"
+            else -> "${filteredList.size} items"
+        }
+        (activity as? VideosFragment.TabHost)?.updateSubtitle(label)
     }
     
     private fun setupRecyclerView() {
