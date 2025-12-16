@@ -225,7 +225,13 @@ class PlayerActivity : AppCompatActivity() {
         // Check if should start in PiP mode
         if (intent.getBooleanExtra("START_IN_PIP", false)) {
             binding.root.postDelayed({
-                enterPiPMode()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val aspectRatio = Rational(16, 9)
+                    val pipParams = PictureInPictureParams.Builder()
+                        .setAspectRatio(aspectRatio)
+                        .build()
+                    enterPictureInPictureMode(pipParams)
+                }
             }, 500)
         }
     }
