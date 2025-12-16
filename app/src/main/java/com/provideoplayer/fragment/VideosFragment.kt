@@ -384,15 +384,45 @@ class VideosFragment : Fragment() {
     }
     
     private fun showVideoInfo(video: VideoItem) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_video_info, null)
+        
+        // Set thumbnail
+        val thumbnail = dialogView.findViewById<android.widget.ImageView>(R.id.infoThumbnail)
+        com.bumptech.glide.Glide.with(this)
+            .load(video.uri)
+            .centerCrop()
+            .into(thumbnail)
+        
+        // Set title
+        dialogView.findViewById<android.widget.TextView>(R.id.infoTitle).text = video.title
+        
+        // Set duration
+        dialogView.findViewById<android.widget.TextView>(R.id.infoDuration).text = video.getFormattedDuration()
+        
+        // Set quality
+        val qualityBadge = video.getQualityBadge()
+        val qualityView = dialogView.findViewById<android.widget.TextView>(R.id.infoQuality)
+        if (qualityBadge.isNotEmpty()) {
+            qualityView.text = qualityBadge
+            qualityView.visibility = View.VISIBLE
+        } else {
+            qualityView.visibility = View.GONE
+        }
+        
+        // Set size
+        dialogView.findViewById<android.widget.TextView>(R.id.infoSize).text = video.getFormattedSize()
+        
+        // Set resolution
+        dialogView.findViewById<android.widget.TextView>(R.id.infoResolution).text = video.resolution.ifEmpty { "Unknown" }
+        
+        // Set date
+        dialogView.findViewById<android.widget.TextView>(R.id.infoDate).text = video.getFormattedDate()
+        
+        // Set path
+        dialogView.findViewById<android.widget.TextView>(R.id.infoPath).text = video.path
+        
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle(video.title)
-            .setMessage("""
-                📁 Folder: ${video.folderName}
-                ⏱️ Duration: ${video.getFormattedDuration()}
-                📊 Size: ${video.getFormattedSize()}
-                🎬 Resolution: ${video.resolution.ifEmpty { "Unknown" }}
-                📂 Path: ${video.path}
-            """.trimIndent())
+            .setView(dialogView)
             .setPositiveButton("Play") { _, _ ->
                 openPlayer(video, 0)
             }

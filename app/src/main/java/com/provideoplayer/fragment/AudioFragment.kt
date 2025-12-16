@@ -401,14 +401,40 @@ class AudioFragment : Fragment() {
     }
     
     private fun showAudioInfo(audio: VideoItem) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_video_info, null)
+        
+        // Set thumbnail (for audio, use CD icon or album art)
+        val thumbnail = dialogView.findViewById<android.widget.ImageView>(R.id.infoThumbnail)
+        com.bumptech.glide.Glide.with(this)
+            .load(audio.uri)
+            .placeholder(R.drawable.ic_audio_cd)
+            .error(R.drawable.ic_audio_cd)
+            .centerCrop()
+            .into(thumbnail)
+        
+        // Set title
+        dialogView.findViewById<android.widget.TextView>(R.id.infoTitle).text = audio.title
+        
+        // Set duration
+        dialogView.findViewById<android.widget.TextView>(R.id.infoDuration).text = audio.getFormattedDuration()
+        
+        // Hide quality badge for audio
+        dialogView.findViewById<android.widget.TextView>(R.id.infoQuality).visibility = View.GONE
+        
+        // Set size
+        dialogView.findViewById<android.widget.TextView>(R.id.infoSize).text = audio.getFormattedSize()
+        
+        // Set resolution (show as Audio for audio files)
+        dialogView.findViewById<android.widget.TextView>(R.id.infoResolution).text = "Audio"
+        
+        // Set date
+        dialogView.findViewById<android.widget.TextView>(R.id.infoDate).text = audio.getFormattedDate()
+        
+        // Set path
+        dialogView.findViewById<android.widget.TextView>(R.id.infoPath).text = audio.path
+        
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle(audio.title)
-            .setMessage("""
-                📁 Folder: ${audio.folderName}
-                ⏱️ Duration: ${audio.getFormattedDuration()}
-                📊 Size: ${audio.getFormattedSize()}
-                📂 Path: ${audio.path}
-            """.trimIndent())
+            .setView(dialogView)
             .setPositiveButton("Play") { _, _ ->
                 openPlayer(audio, 0)
             }
