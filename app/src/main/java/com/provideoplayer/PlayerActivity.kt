@@ -1600,6 +1600,7 @@ class PlayerActivity : AppCompatActivity() {
                 retriever.release()
             } catch (e: Exception) {
                 // Ignore thumbnail errors
+            }
         }
     }
     
