@@ -113,9 +113,9 @@ class VideoAdapter(
                 duration?.text = video.getFormattedDuration()
             }
             
-            // Set quality as resolution (1080p, 720p, etc.)
-            val resText = video.resolution.ifEmpty { "Unknown" }
-            quality?.text = resText
+            // Set quality as HD/4K/SD badge
+            val qualityText = video.getQualityBadge()
+            quality?.text = qualityText.ifEmpty { "SD" }
             
             // Set size
             size?.text = video.getFormattedSize()

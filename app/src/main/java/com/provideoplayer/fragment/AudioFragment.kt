@@ -307,7 +307,7 @@ class AudioFragment : Fragment() {
     
     private fun applyLayoutPreference() {
         val prefs = requireContext().getSharedPreferences("pro_video_player_prefs", Context.MODE_PRIVATE)
-        val isGrid = prefs.getBoolean("is_grid_view", true)
+        val isGrid = prefs.getBoolean("is_grid_view", false)
         
         binding.recyclerView.layoutManager = if (isGrid) {
             GridLayoutManager(requireContext(), 2)

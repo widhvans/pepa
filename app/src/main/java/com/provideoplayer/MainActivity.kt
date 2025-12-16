@@ -342,7 +342,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
 
     private fun toggleLayoutMode() {
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
-        val isCurrentlyGrid = prefs.getBoolean("is_grid_view", true)
+        val isCurrentlyGrid = prefs.getBoolean("is_grid_view", false)
         
         prefs.edit()
             .putBoolean("is_grid_view", !isCurrentlyGrid)
@@ -357,7 +357,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
     
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         val prefs = getSharedPreferences("pro_video_player_prefs", MODE_PRIVATE)
-        val isGrid = prefs.getBoolean("is_grid_view", true)
+        val isGrid = prefs.getBoolean("is_grid_view", false)
         
         menu.findItem(R.id.action_view_toggle)?.let { item ->
             item.setIcon(if (isGrid) R.drawable.ic_list_view else R.drawable.ic_grid_view)
