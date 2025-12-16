@@ -1029,25 +1029,30 @@ class PlayerActivity : AppCompatActivity() {
             ): Boolean {
                 if (isLocked || e1 == null) return false
                 
-                val deltaY = e1.y - e2.y
-                val deltaX = e1.x - e2.x
+                // Use cumulative delta only for determining gesture TYPE
+                val cumulativeDeltaY = e1.y - e2.y
+                val cumulativeDeltaX = e1.x - e2.x
                 
                 // Determine gesture type on first scroll
                 if (!isGestureActive) {
                     isGestureActive = true
                     gestureType = when {
-                        abs(deltaX) > abs(deltaY) -> GestureType.SEEK
+                        abs(cumulativeDeltaX) > abs(cumulativeDeltaY) -> GestureType.SEEK
                         e1.x < screenWidth / 2 -> GestureType.BRIGHTNESS
                         else -> GestureType.VOLUME
                     }
                 }
                 
+                // Use distanceY for actual adjustment (per-frame, immediate response)
+                // distanceY is negative when swiping UP (which should increase value)
+                val frameDelta = -distanceY / screenHeight
+                
                 when (gestureType) {
                     GestureType.BRIGHTNESS -> {
-                        adjustBrightness(deltaY / screenHeight)
+                        adjustBrightness(frameDelta)
                     }
                     GestureType.VOLUME -> {
-                        adjustVolume(deltaY / screenHeight)
+                        adjustVolume(frameDelta)
                     }
                     GestureType.SEEK -> {
                         // Horizontal seek handled separately
@@ -1508,9 +1513,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun adjustBrightness(delta: Float) {
-    // Lower sensitivity (0.15) for professional, precise adjustments
-    val sensitivity = 0.15f
-    currentBrightness = (currentBrightness + delta * sensitivity).coerceIn(0.01f, 1f)
+        // Sensitivity for per-frame delta (1.5 for 1:1 smooth response)
+        val sensitivity = 1.5f
+        currentBrightness = (currentBrightness + delta * sensitivity).coerceIn(0.01f, 1f)
         
         val layoutParams = window.attributes
         layoutParams.screenBrightness = currentBrightness
@@ -1520,9 +1525,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun adjustVolume(delta: Float) {
-    // Lower sensitivity (0.15) for professional, precise adjustments
-    val sensitivity = 0.15f
-    val volumeChange = (delta * maxVolume * sensitivity).toInt()
+        // Sensitivity for per-frame delta (1.5 for 1:1 smooth response)
+        val sensitivity = 1.5f
+        val volumeChange = (delta * maxVolume * sensitivity).toInt()
         val newVolume = (currentVolume + volumeChange).coerceIn(0, maxVolume)
         currentVolume = newVolume
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
