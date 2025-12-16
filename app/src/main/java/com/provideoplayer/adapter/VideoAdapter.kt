@@ -125,11 +125,7 @@ class VideoAdapter(
             
             // Show NEW tag in grid view
             newTag?.visibility = if (isNew) View.VISIBLE else View.GONE
-            if (isAudio) {
-                newTag?.setBackgroundColor(android.graphics.Color.parseColor("#00BFFF"))
-            } else {
-                newTag?.setBackgroundResource(R.drawable.bg_new_tag)
-            }
+            newTag?.setBackgroundResource(R.drawable.bg_new_tag)
             
             // Show selection checkbox
             checkboxSelected?.visibility = if (isSelected(video)) View.VISIBLE else View.GONE

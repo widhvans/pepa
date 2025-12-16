@@ -19,7 +19,8 @@
         android:layout_marginEnd="8dp"
         android:src="@drawable/ic_check_circle"
         android:visibility="gone"
-        app:tint="#9C27B0" />
+        android:background="@drawable/bg_checkbox"
+        app:tint="#00E5FF" />
 
     <!-- Larger Thumbnail -->
     <androidx.cardview.widget.CardView

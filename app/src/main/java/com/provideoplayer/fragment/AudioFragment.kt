@@ -93,10 +93,15 @@ class AudioFragment : Fragment() {
     private fun setupRecyclerView() {
         videoAdapter = VideoAdapter(
             onVideoClick = { audio, position ->
-                openPlayer(audio, position)
+                // If in selection mode, toggle selection, otherwise play
+                if (videoAdapter.selectedItems.isNotEmpty()) {
+                    toggleSelection(audio)
+                } else {
+                    openPlayer(audio, position)
+                }
             },
             onVideoLongClick = { audio ->
-                // Long press to select file
+                // Long press to start/toggle selection
                 toggleSelection(audio)
                 true
             },
@@ -110,16 +115,90 @@ class AudioFragment : Fragment() {
             setHasFixedSize(true)
         }
         applyLayoutPreference()
+        setupSelectionBar()
+    }
+    
+    private fun setupSelectionBar() {
+        binding.btnClearSelection.setOnClickListener {
+            videoAdapter.clearSelection()
+            updateSelectionBar()
+        }
+        
+        binding.btnShareSelected.setOnClickListener {
+            shareSelectedAudios()
+        }
+        
+        binding.btnDeleteSelected.setOnClickListener {
+            deleteSelectedAudios()
+        }
+    }
+    
+    private fun updateSelectionBar() {
+        val count = videoAdapter.selectedItems.size
+        if (count > 0) {
+            binding.selectionBar.visibility = android.view.View.VISIBLE
+            binding.selectionCount.text = "$count selected"
+        } else {
+            binding.selectionBar.visibility = android.view.View.GONE
+        }
+    }
+    
+    private fun shareSelectedAudios() {
+        val selected = videoAdapter.selectedItems.toList()
+        if (selected.isEmpty()) return
+        
+        try {
+            val uris = selected.map { audio ->
+                androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    java.io.File(audio.path)
+                )
+            }
+            
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "audio/*"
+                putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, ArrayList(uris))
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(android.content.Intent.createChooser(intent, "Share ${selected.size} files"))
+            
+            videoAdapter.clearSelection()
+            updateSelectionBar()
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(requireContext(), "Error sharing files", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun deleteSelectedAudios() {
+        val selected = videoAdapter.selectedItems.toList()
+        if (selected.isEmpty()) return
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Delete ${selected.size} files?")
+            .setMessage("This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                var deleted = 0
+                selected.forEach { audio ->
+                    try {
+                        val file = java.io.File(audio.path)
+                        if (file.exists() && file.delete()) {
+                            deleted++
+                        }
+                    } catch (e: Exception) { }
+                }
+                android.widget.Toast.makeText(requireContext(), "$deleted files deleted", android.widget.Toast.LENGTH_SHORT).show()
+                videoAdapter.clearSelection()
+                updateSelectionBar()
+                loadAudioFiles()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
     
     private fun toggleSelection(audio: VideoItem) {
         videoAdapter.toggleSelection(audio)
-        val count = videoAdapter.selectedItems.size
-        if (count > 0) {
-            android.widget.Toast.makeText(requireContext(), "$count item(s) selected", android.widget.Toast.LENGTH_SHORT).show()
-        } else {
-            android.widget.Toast.makeText(requireContext(), "Selection cleared", android.widget.Toast.LENGTH_SHORT).show()
-        }
+        updateSelectionBar()
     }
     
     private fun showAudioMenu(audio: VideoItem, anchorView: android.view.View) {

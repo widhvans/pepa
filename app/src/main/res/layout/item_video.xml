@@ -31,13 +31,14 @@
             <!-- Selection Checkbox -->
             <ImageView
                 android:id="@+id/checkboxSelected"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:layout_gravity="top|start"
                 android:layout_margin="4dp"
                 android:src="@drawable/ic_check_circle"
                 android:visibility="gone"
-                app:tint="#9C27B0" />
+                android:background="#80000000"
+                app:tint="#00E5FF" />
 
             <!-- NEW Tag Badge -->
             <TextView
