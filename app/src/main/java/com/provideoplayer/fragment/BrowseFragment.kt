@@ -117,11 +117,17 @@ class BrowseFragment : Fragment() {
     
     private fun updateSelectionBar() {
         val count = videoAdapter.selectedItems.size
+        val mainFab = activity?.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(com.provideoplayer.R.id.fabContinueVideo)
+        
         if (count > 0) {
             binding.selectionBar.visibility = View.VISIBLE
             binding.selectionCount.text = "$count selected"
+            // Animate FAB up (same as Videos/Audio tabs)
+            mainFab?.animate()?.translationY(-160f)?.setDuration(200)?.start()
         } else {
             binding.selectionBar.visibility = View.GONE
+            // Animate FAB back to original position
+            mainFab?.animate()?.translationY(0f)?.setDuration(200)?.start()
         }
     }
     

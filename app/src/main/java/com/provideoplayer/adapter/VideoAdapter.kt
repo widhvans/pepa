@@ -113,9 +113,33 @@ class VideoAdapter(
                 duration?.text = video.getFormattedDuration()
             }
             
-            // Set quality as HD/4K/SD badge
-            val qualityText = video.getQualityBadge()
-            quality?.text = qualityText.ifEmpty { "SD" }
+            // Check if it's an audio file
+            val isAudio = video.mimeType.startsWith("audio") ||
+                         video.path.endsWith(".mp3", true) ||
+                         video.path.endsWith(".m4a", true) ||
+                         video.path.endsWith(".flac", true) ||
+                         video.path.endsWith(".wav", true) ||
+                         video.path.endsWith(".aac", true)
+            
+            // Set quality (resolution for video, codec for audio)
+            if (isAudio) {
+                // Show audio codec based on extension
+                val codec = when {
+                    video.path.endsWith(".mp3", true) -> "MP3"
+                    video.path.endsWith(".m4a", true) -> "M4A"
+                    video.path.endsWith(".flac", true) -> "FLAC"
+                    video.path.endsWith(".wav", true) -> "WAV"
+                    video.path.endsWith(".aac", true) -> "AAC"
+                    video.path.endsWith(".ogg", true) -> "OGG"
+                    video.path.endsWith(".opus", true) -> "OPUS"
+                    else -> "Audio"
+                }
+                quality?.text = codec
+            } else {
+                // Show resolution for video
+                val qualityText = video.getQualityBadge()
+                quality?.text = qualityText.ifEmpty { "Video" }
+            }
             
             // Set size
             size?.text = video.getFormattedSize()
@@ -125,14 +149,6 @@ class VideoAdapter(
             
             // Set date (for grid view)
             date?.text = video.getFormattedDate()
-            
-            // Check if it's an audio file
-            val isAudio = video.mimeType.startsWith("audio") ||
-                         video.path.endsWith(".mp3", true) ||
-                         video.path.endsWith(".m4a", true) ||
-                         video.path.endsWith(".flac", true) ||
-                         video.path.endsWith(".wav", true) ||
-                         video.path.endsWith(".aac", true)
             
             val prefs = itemView.context.getSharedPreferences("pro_video_player_prefs", android.content.Context.MODE_PRIVATE)
             

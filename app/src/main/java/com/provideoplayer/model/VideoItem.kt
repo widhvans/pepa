@@ -49,10 +49,13 @@ data class VideoItem(
         } catch (e: Exception) { 0 }
         
         return when {
-            height >= 2160 -> "4K"
-            height >= 1080 -> "Full HD"
-            height >= 720 -> "HD"
-            height >= 480 -> "SD"
+            height >= 2160 -> "2160p"
+            height >= 1080 -> "1080p"
+            height >= 720 -> "720p"
+            height >= 480 -> "480p"
+            height >= 360 -> "360p"
+            height >= 240 -> "240p"
+            height >= 144 -> "144p"
             height > 0 -> "${height}p"
             else -> ""
         }
