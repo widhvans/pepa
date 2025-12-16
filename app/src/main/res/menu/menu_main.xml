@@ -56,6 +56,10 @@
 
         <menu>
             <item
+                android:id="@+id/action_stream"
+                android:icon="@drawable/ic_link"
+                android:title="Stream URL" />
+            <item
                 android:id="@+id/action_refresh"
                 android:icon="@drawable/ic_refresh"
                 android:title="Refresh" />

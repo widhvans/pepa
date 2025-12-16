@@ -1044,8 +1044,11 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 
                 // Use distanceY for actual adjustment (per-frame, immediate response)
-                // Swipe UP = increase, Swipe DOWN = decrease (distanceY positive when moving up)
-                val frameDelta = -distanceY / screenHeight
+                // Swipe UP = increase, Swipe DOWN = decrease
+                val frameDelta = distanceY / screenHeight
+                
+                // Horizontal seek delta (per-frame)
+                val seekFrameDelta = -distanceX / screenWidth
                 
                 when (gestureType) {
                     GestureType.BRIGHTNESS -> {
@@ -1055,7 +1058,9 @@ class PlayerActivity : AppCompatActivity() {
                         adjustVolume(frameDelta)
                     }
                     GestureType.SEEK -> {
-                        // Horizontal seek handled separately
+                        // Horizontal swipe seek - per-frame for smooth response
+                        val seekAmount = (seekFrameDelta * 60000).toLong()  // Max 60 sec per full swipe
+                        adjustSeek(seekAmount)
                     }
                     GestureType.NONE -> {}
                 }
@@ -1188,7 +1193,9 @@ class PlayerActivity : AppCompatActivity() {
                 isGestureActive = false
                 gestureType = GestureType.NONE
                 isPanning = false
+                seekAccumulator = 0L  // Reset seek accumulator
                 hideGestureIndicator()
+                binding.seekIndicator.visibility = View.GONE  // Hide seek indicator
             }
             
             true
@@ -1535,6 +1542,27 @@ class PlayerActivity : AppCompatActivity() {
         showGestureIndicator(GestureType.VOLUME, (currentVolume * 100 / maxVolume))
     }
 
+    private var seekAccumulator: Long = 0L
+    
+    private fun adjustSeek(delta: Long) {
+        player?.let { p ->
+            seekAccumulator += delta
+            val currentPos = p.currentPosition
+            val duration = p.duration
+            if (duration <= 0) return
+            
+            // Show seek indicator with accumulated seek amount
+            val seekSecs = seekAccumulator / 1000
+            val sign = if (seekAccumulator >= 0) "+" else ""
+            binding.seekIndicator.text = "${sign}${seekSecs}s"
+            binding.seekIndicator.visibility = View.VISIBLE
+            
+            // Apply seek
+            val newPos = (currentPos + delta).coerceIn(0, duration)
+            p.seekTo(newPos)
+        }
+    }
+
     private fun showGestureIndicator(type: GestureType, value: Int) {
         binding.gestureIndicator.visibility = View.VISIBLE
         when (type) {
@@ -1653,13 +1681,54 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyAspectRatio(mode: AspectRatioMode) {
+        // Reset zoom first
+        resetZoom()
+        
+        // Apply resize mode immediately
         binding.playerView.resizeMode = when (mode) {
             AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
             AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             AspectRatioMode.STRETCH -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
-            AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-            AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-            AspectRatioMode.RATIO_21_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+            AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+            AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+            AspectRatioMode.RATIO_21_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
+        
+        // For fixed aspect ratios, apply scaling
+        when (mode) {
+            AspectRatioMode.RATIO_16_9 -> {
+                val targetRatio = 16f / 9f
+                applyFixedAspectRatio(targetRatio)
+            }
+            AspectRatioMode.RATIO_4_3 -> {
+                val targetRatio = 4f / 3f
+                applyFixedAspectRatio(targetRatio)
+            }
+            AspectRatioMode.RATIO_21_9 -> {
+                val targetRatio = 21f / 9f
+                applyFixedAspectRatio(targetRatio)
+            }
+            else -> {
+                // Reset any custom scaling for FIT, FILL, STRETCH
+                binding.playerView.scaleX = 1.0f
+                binding.playerView.scaleY = 1.0f
+            }
+        }
+    }
+    
+    private fun applyFixedAspectRatio(targetRatio: Float) {
+        val screenRatio = screenWidth.toFloat() / screenHeight.toFloat()
+        
+        if (targetRatio > screenRatio) {
+            // Target is wider - scale Y to match
+            val scale = targetRatio / screenRatio
+            binding.playerView.scaleX = 1.0f
+            binding.playerView.scaleY = 1.0f / scale
+        } else {
+            // Target is taller - scale X to match
+            val scale = screenRatio / targetRatio
+            binding.playerView.scaleX = 1.0f / scale
+            binding.playerView.scaleY = 1.0f
         }
     }
 

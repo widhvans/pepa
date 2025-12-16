@@ -214,6 +214,12 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                 Toast.makeText(this, "Refreshing...", Toast.LENGTH_SHORT).show()
                 true
             }
+            R.id.action_stream -> {
+                // Navigate to Stream tab (index 4)
+                binding.viewPager.setCurrentItem(4, true)
+                binding.bottomNavigation.selectedItemId = R.id.nav_network
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
