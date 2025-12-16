@@ -44,6 +44,25 @@ class VideoAdapter(
         }
     }
 
+    // Selection state
+    val selectedItems = mutableSetOf<VideoItem>()
+    
+    fun isSelected(video: VideoItem): Boolean = selectedItems.contains(video)
+    
+    fun toggleSelection(video: VideoItem) {
+        if (selectedItems.contains(video)) {
+            selectedItems.remove(video)
+        } else {
+            selectedItems.add(video)
+        }
+        notifyDataSetChanged()
+    }
+    
+    fun clearSelection() {
+        selectedItems.clear()
+        notifyDataSetChanged()
+    }
+
     // Set to true for list view, false for grid view
     var isListView: Boolean = false
         set(value) {
@@ -75,6 +94,8 @@ class VideoAdapter(
         private val duration: TextView? = itemView.findViewById(R.id.videoDuration)
         private val size: TextView? = itemView.findViewById(R.id.videoSize)
         private val btnMenu: ImageView? = itemView.findViewById(R.id.btnMenu)
+        private val newTag: TextView? = itemView.findViewById(R.id.newTag)
+        private val checkboxSelected: ImageView? = itemView.findViewById(R.id.checkboxSelected)
 
         fun bind(video: VideoItem, position: Int) {
             title.text = video.title
@@ -92,6 +113,26 @@ class VideoAdapter(
             
             // Check if media is in history using proper JSON parsing
             val videoUri = video.uri.toString()
+            
+            // Determine if video is new (not in history)
+            val isNew = if (isAudio) {
+                val audioHistoryJson = prefs.getString("audio_history", "[]") ?: "[]"
+                !isUriInHistory(audioHistoryJson, videoUri)
+            } else {
+                val historyJson = prefs.getString("video_history", "[]") ?: "[]"
+                !isUriInHistory(historyJson, videoUri)
+            }
+            
+            // Show NEW tag in grid view
+            newTag?.visibility = if (isNew) View.VISIBLE else View.GONE
+            if (isAudio) {
+                newTag?.setBackgroundColor(android.graphics.Color.parseColor("#00BFFF"))
+            } else {
+                newTag?.setBackgroundResource(R.drawable.bg_new_tag)
+            }
+            
+            // Show selection checkbox
+            checkboxSelected?.visibility = if (isSelected(video)) View.VISIBLE else View.GONE
             
             // Handle size view if present (list view only)
             size?.let { sizeView ->
@@ -171,4 +212,3 @@ class VideoAdapter(
         }
     }
 }
-

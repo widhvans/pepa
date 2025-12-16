@@ -112,17 +112,14 @@ class AudioFragment : Fragment() {
         applyLayoutPreference()
     }
     
-    private val selectedAudios = mutableSetOf<VideoItem>()
-    
     private fun toggleSelection(audio: VideoItem) {
-        if (selectedAudios.contains(audio)) {
-            selectedAudios.remove(audio)
-            android.widget.Toast.makeText(requireContext(), "Deselected: ${audio.title}", android.widget.Toast.LENGTH_SHORT).show()
+        videoAdapter.toggleSelection(audio)
+        val count = videoAdapter.selectedItems.size
+        if (count > 0) {
+            android.widget.Toast.makeText(requireContext(), "$count item(s) selected", android.widget.Toast.LENGTH_SHORT).show()
         } else {
-            selectedAudios.add(audio)
-            android.widget.Toast.makeText(requireContext(), "Selected: ${audio.title} (${selectedAudios.size} selected)", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(requireContext(), "Selection cleared", android.widget.Toast.LENGTH_SHORT).show()
         }
-        videoAdapter.notifyDataSetChanged()
     }
     
     private fun showAudioMenu(audio: VideoItem, anchorView: android.view.View) {

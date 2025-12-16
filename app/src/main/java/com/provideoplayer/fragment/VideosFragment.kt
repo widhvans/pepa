@@ -101,18 +101,14 @@ class VideosFragment : Fragment() {
         popup.show()
     }
     
-    private val selectedVideos = mutableSetOf<VideoItem>()
-    
     private fun toggleSelection(video: VideoItem) {
-        if (selectedVideos.contains(video)) {
-            selectedVideos.remove(video)
-            Toast.makeText(requireContext(), "Deselected: ${video.title}", Toast.LENGTH_SHORT).show()
+        videoAdapter.toggleSelection(video)
+        val count = videoAdapter.selectedItems.size
+        if (count > 0) {
+            Toast.makeText(requireContext(), "$count item(s) selected", Toast.LENGTH_SHORT).show()
         } else {
-            selectedVideos.add(video)
-            Toast.makeText(requireContext(), "Selected: ${video.title} (${selectedVideos.size} selected)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Selection cleared", Toast.LENGTH_SHORT).show()
         }
-        // Update adapter to show selection state
-        videoAdapter.notifyDataSetChanged()
     }
     
     private fun openPlayerInPiP(video: VideoItem) {
