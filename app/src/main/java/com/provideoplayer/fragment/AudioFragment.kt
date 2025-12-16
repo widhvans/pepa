@@ -431,6 +431,14 @@ class AudioFragment : Fragment() {
         }
     }
     
+    override fun onResume() {
+        super.onResume()
+        // Refresh adapter to update NEW tags after playback
+        if (::videoAdapter.isInitialized) {
+            videoAdapter.notifyDataSetChanged()
+        }
+    }
+    
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

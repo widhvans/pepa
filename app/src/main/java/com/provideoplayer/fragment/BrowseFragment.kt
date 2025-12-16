@@ -763,6 +763,11 @@ class BrowseFragment : Fragment() {
             (activity as? VideosFragment.TabHost)?.setBackEnabled(false)
             (activity as? VideosFragment.TabHost)?.updateTitle("Browse")
         }
+        
+        // Refresh adapter to update NEW tags after playback
+        if (::videoAdapter.isInitialized) {
+            videoAdapter.notifyDataSetChanged()
+        }
     }
     
     override fun onDestroyView() {
