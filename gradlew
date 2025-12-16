@@ -1,4 +1,4 @@
-distributionBase=GRADLE_USER_HOME   
+distributionBase=GRADLE_USER_HOME 
 distributionPath=wrapper/dists
 distributionUrl=https\://services.gradle.org/distributions/gradle-9.4.0-milestone-2-bin.zip
 networkTimeout=10000
