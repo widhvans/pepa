@@ -954,16 +954,37 @@ class PlayerActivity : AppCompatActivity() {
         }
         
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            android.util.Log.d("PlayerActivity", "Media item transition - reason: $reason, URI: ${mediaItem?.localConfiguration?.uri}")
+            val reasonName = when (reason) {
+                Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> "AUTO"
+                Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> "SEEK"
+                Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT -> "REPEAT"
+                Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> "PLAYLIST_CHANGED"
+                else -> "UNKNOWN($reason)"
+            }
+            addLog("onMediaItemTransition: reason=$reasonName, URI=${mediaItem?.localConfiguration?.uri}")
             
-            // PREVENT AUTO-ADVANCE: If this transition was automatic (not user-triggered), stop it
+            // PREVENT AUTO-ADVANCE: If this transition was automatic (not user-triggered), handle end of video
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                android.util.Log.d("PlayerActivity", "Blocking auto-advance to next video")
-                // Go back to previous video and pause
+                addLog(">>> AUTO TRANSITION DETECTED - Video ended! <<<")
+                
                 player?.let { p ->
-                    val previousIndex = (currentIndex).coerceIn(0, playlist.size - 1)
+                    // Set the ended flag
+                    videoHasEnded = true
+                    addLog("FLAG SET: videoHasEnded = true (from onMediaItemTransition)")
+                    
+                    // Pause playback
                     p.pause()
-                    p.seekTo(previousIndex, p.duration - 1)
+                    addLog("ACTION: Called pause()")
+                    
+                    // Go back to the previous (current) video 
+                    val targetIndex = currentIndex.coerceIn(0, playlist.size - 1)
+                    p.seekTo(targetIndex, 0)  // Seek to start of current video
+                    addLog("ACTION: Seeked back to index $targetIndex, position 0")
+                    
+                    // DIRECTLY SET RESTART ICON
+                    binding.btnPlayPause.setImageResource(R.drawable.ic_restart)
+                    addLog(">>> ICON: Set RESTART icon (from onMediaItemTransition) <<<")
+                    showControls()
                 }
                 return  // Don't update UI for blocked transition
             }
