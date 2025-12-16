@@ -90,11 +90,17 @@ class VideosFragment : Fragment() {
     
     private fun updateSelectionBar() {
         val count = videoAdapter.selectedItems.size
+        val mainFab = activity?.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(com.provideoplayer.R.id.fabContinueVideo)
+        
         if (count > 0) {
             binding.selectionBar.visibility = View.VISIBLE
             binding.selectionCount.text = "$count selected"
+            // Animate FAB up to avoid overlap with selection bar
+            mainFab?.animate()?.translationY(-80f)?.setDuration(200)?.start()
         } else {
             binding.selectionBar.visibility = View.GONE
+            // Animate FAB back to original position
+            mainFab?.animate()?.translationY(0f)?.setDuration(200)?.start()
         }
     }
     

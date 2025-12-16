@@ -137,11 +137,17 @@ class AudioFragment : Fragment() {
     
     private fun updateSelectionBar() {
         val count = videoAdapter.selectedItems.size
+        val mainFab = activity?.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(com.provideoplayer.R.id.fabContinueVideo)
+        
         if (count > 0) {
             binding.selectionBar.visibility = android.view.View.VISIBLE
             binding.selectionCount.text = "$count selected"
+            // Animate FAB up
+            mainFab?.animate()?.translationY(-80f)?.setDuration(200)?.start()
         } else {
             binding.selectionBar.visibility = android.view.View.GONE
+            // Animate FAB back
+            mainFab?.animate()?.translationY(0f)?.setDuration(200)?.start()
         }
     }
     
