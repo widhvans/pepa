@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                     }
                     1 -> pagerAdapter.getAudioFragment()?.let { frag ->
                         val count = frag.getAudioCount()
-                        supportActionBar?.subtitle = if (count > 0) "$count audio files" else null
+                        supportActionBar?.subtitle = if (count > 0) "$count songs" else null
                     }
                     2 -> {
                         // Browse tab manages its own subtitle
