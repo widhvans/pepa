@@ -322,12 +322,11 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
     }
 
     private fun refreshCurrentFragment() {
-        when (currentTab) {
-            0 -> pagerAdapter.getVideosFragment()?.refreshData()
-            1 -> pagerAdapter.getAudioFragment()?.refreshData()
-            2 -> pagerAdapter.getBrowseFragment()?.refreshData()
-            3 -> pagerAdapter.getPlaylistFragment()?.refreshData()
-        }
+        // Refresh ALL fragments to apply layout change across all tabs
+        pagerAdapter.getVideosFragment()?.refreshData()
+        pagerAdapter.getAudioFragment()?.refreshData()
+        pagerAdapter.getBrowseFragment()?.refreshData()
+        pagerAdapter.getPlaylistFragment()?.refreshData()
     }
 
     private fun openNetworkStreamDialog() {
