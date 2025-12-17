@@ -94,27 +94,25 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                 // Update toolbar title
                 supportActionBar?.title = when (position) {
                     0 -> "Videos"
-                    1 -> "Music"
+                    1 -> "Audio"
                     2 -> "Browse"
                     3 -> "Playlist"
                     4 -> "Stream"
                     else -> getString(R.string.app_name)
                 }
                 
-                // Restore title with count on tab switch
+                // Restore subtitle based on tab (show file counts)
                 when (position) {
                     0 -> pagerAdapter.getVideosFragment()?.let { frag ->
                         val count = frag.getVideoCount()
-                        supportActionBar?.title = "Videos ($count)"
-                        supportActionBar?.subtitle = null
+                        supportActionBar?.subtitle = if (count > 0) "$count videos" else null
                     }
                     1 -> pagerAdapter.getAudioFragment()?.let { frag ->
                         val count = frag.getAudioCount()
-                        supportActionBar?.title = "Music ($count)"
-                        supportActionBar?.subtitle = null
+                        supportActionBar?.subtitle = if (count > 0) "$count audio files" else null
                     }
                     2 -> {
-                        // Browse tab manages its own title
+                        // Browse tab manages its own subtitle
                     }
                     else -> supportActionBar?.subtitle = null
                 }
@@ -136,7 +134,7 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
                 }
                 R.id.nav_audio -> {
                     binding.viewPager.setCurrentItem(1, true)
-                    supportActionBar?.title = "Music"
+                    supportActionBar?.title = "Audio"
                     true
                 }
                 R.id.nav_browse -> {
@@ -504,9 +502,16 @@ class MainActivity : AppCompatActivity(), VideosFragment.TabHost {
     
     override fun onResume() {
         super.onResume()
+        // Always check permission on resume, as user might have granted it in settings
         if (PermissionManager.hasStoragePermission(this)) {
-            binding.permissionLayout.visibility = View.GONE
-            binding.contentLayout.visibility = View.VISIBLE
+            if (binding.permissionLayout.visibility == View.VISIBLE) {
+                binding.permissionLayout.visibility = View.GONE
+                binding.contentLayout.visibility = View.VISIBLE
+                
+                // Refresh data if needed or just let the fragments load naturally
+                pagerAdapter.getVideosFragment()?.refreshData()
+                pagerAdapter.getAudioFragment()?.refreshData()
+            }
         }
     }
 

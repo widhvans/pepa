@@ -18,87 +18,63 @@ import androidx.core.content.ContextCompat
 object PermissionManager {
     
     const val STORAGE_PERMISSION_CODE = 100
-    const val ALL_FILES_ACCESS_CODE = 101
+    // We'll use a single permission code for simplicity in the main flow
     
     /**
-     * Get required permissions based on Android version
+     * Check if the app has the required "Find All Files" / Storage permissions
      */
-    fun getRequiredPermissions(): Array<String> {
-        return when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                // Android 13+ uses granular media permissions
-                arrayOf(
-                    Manifest.permission.READ_MEDIA_VIDEO,
-                    Manifest.permission.READ_MEDIA_AUDIO
-                )
-            }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                // Android 11-12 only needs READ
-                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-            else -> {
-                // Android 10 and below
-                arrayOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
-            }
-        }
-    }
-    
-    /**
-     * Check if All Files Access is granted (Android 11+)
-     */
-    fun hasAllFilesAccess(): Boolean {
+    fun hasStoragePermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+: Strictly require MANAGE_EXTERNAL_STORAGE
             Environment.isExternalStorageManager()
         } else {
-            true // Not needed for older versions
+            // Android 10 and below: Check standard storage permissions
+            val permissions = arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            permissions.all { permission ->
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            }
         }
     }
     
     /**
-     * Request All Files Access permission (Android 11+)
+     * Request the appropriate storage permission
      */
-    fun requestAllFilesAccess(activity: Activity) {
+    fun requestStoragePermission(activity: Activity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+: Open "All Files Access" settings directly
             try {
                 val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
                 intent.data = Uri.parse("package:${activity.packageName}")
-                activity.startActivityForResult(intent, ALL_FILES_ACCESS_CODE)
+                activity.startActivity(intent)
             } catch (e: Exception) {
                 val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                activity.startActivityForResult(intent, ALL_FILES_ACCESS_CODE)
+                activity.startActivity(intent)
             }
+        } else {
+            // Android 10 and below: Request standard permissions
+            val permissions = arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            ActivityCompat.requestPermissions(activity, permissions, STORAGE_PERMISSION_CODE)
         }
     }
     
     /**
-     * Check if all required permissions are granted
-     */
-    fun hasStoragePermission(context: Context): Boolean {
-        val permissions = getRequiredPermissions()
-        val basicPermissions = permissions.all { permission ->
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-        }
-        
-        // Also check All Files Access for Android 11+
-        return basicPermissions && hasAllFilesAccess()
-    }
-    
-    /**
-     * Request storage permissions
-     */
-    fun requestStoragePermission(activity: Activity) {
-        val permissions = getRequiredPermissions()
-        ActivityCompat.requestPermissions(activity, permissions, STORAGE_PERMISSION_CODE)
-    }
-    
-    /**
-     * Check if permission was permanently denied
+     * Check if permission was permanently denied (Legacy/Standard permissions only)
      */
     fun isPermissionPermanentlyDenied(activity: Activity): Boolean {
-        val permissions = getRequiredPermissions()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return !Environment.isExternalStorageManager()
+        }
+        
+        val permissions = arrayOf(
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
         return permissions.any { permission ->
             !ActivityCompat.shouldShowRequestPermissionRationale(activity, permission) &&
             ContextCompat.checkSelfPermission(activity, permission) != PackageManager.PERMISSION_GRANTED

@@ -1461,13 +1461,21 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun seekForward() {
         player?.let {
-            val newPosition = (it.currentPosition + SEEK_INCREMENT).coerceAtMost(it.duration)
+            val duration = it.duration
+            var newPosition = it.currentPosition + SEEK_INCREMENT
+            
+            // Only clamp to duration if it is known/valid
+            if (duration != C.TIME_UNSET && duration > 0) {
+                newPosition = newPosition.coerceAtMost(duration)
+            }
+            
             it.seekTo(newPosition)
         }
     }
 
     private fun seekBackward() {
         player?.let {
+            // seeking back to 0 is always safe, but checking just in case
             val newPosition = (it.currentPosition - SEEK_INCREMENT).coerceAtLeast(0)
             it.seekTo(newPosition)
         }

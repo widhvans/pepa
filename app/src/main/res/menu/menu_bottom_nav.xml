@@ -9,7 +9,7 @@
     <item
         android:id="@+id/nav_audio"
         android:icon="@drawable/ic_audio"
-        android:title="Music" />
+        android:title="Audio" />
 
     <item
         android:id="@+id/nav_browse"

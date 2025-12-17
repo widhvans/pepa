@@ -79,23 +79,13 @@ class SettingsActivity : AppCompatActivity() {
         binding.switchAutoPip.isChecked = prefs.getBoolean(KEY_AUTO_PIP, true)
         binding.switchHardwareAcceleration.isChecked = prefs.getBoolean(KEY_HARDWARE_ACCELERATION, true)
 
-        // Update All Files Access switch state
-        updateAllFilesAccessState()
+
 
         // Update speed text
         updateSpeedText()
     }
     
-    private fun updateAllFilesAccessState() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val hasAccess = Environment.isExternalStorageManager()
-            binding.switchAllFilesAccess.isChecked = hasAccess
-            binding.textAllFilesStatus.text = if (hasAccess) "Granted" else "Tap to grant access"
-        } else {
-            // Hide for older Android versions
-            binding.layoutAllFilesAccess.visibility = android.view.View.GONE
-        }
-    }
+
 
     private fun setupListeners() {
         // Default speed selection
@@ -128,13 +118,7 @@ class SettingsActivity : AppCompatActivity() {
             prefs.edit().putBoolean(KEY_HARDWARE_ACCELERATION, isChecked).apply()
         }
 
-        // All Files Access
-        binding.layoutAllFilesAccess.setOnClickListener {
-            requestAllFilesAccess()
-        }
-        binding.switchAllFilesAccess.setOnClickListener {
-            requestAllFilesAccess()
-        }
+
 
         // Clear cache
         binding.layoutClearCache.setOnClickListener {
@@ -147,25 +131,11 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
     
-    private fun requestAllFilesAccess() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            try {
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.data = Uri.parse("package:$packageName")
-                startActivity(intent)
-            } catch (e: Exception) {
-                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                startActivity(intent)
-            }
-        }
-    }
+
     
     override fun onResume() {
         super.onResume()
-        // Update All Files Access state when returning from settings
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            updateAllFilesAccessState()
-        }
+
     }
 
     private fun showSpeedDialog() {
